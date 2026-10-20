@@ -2,9 +2,9 @@
 **GreenField Technologies | IoT Systems Design**
 
 **Team Members:**
-1. ____________________
-2. ____________________
-
+1. Valeria Corredor García
+2. Juan Felipe Camacho García
+3. Juan Pablo Vargas Córdoba
 ---
 
 ## 1. System Overview
