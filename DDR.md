@@ -34,7 +34,7 @@
 *   **To Edwin (Ops):** Con S fuera de la red, C reintentó CON y declaró `ResponseTimeout` tras 95 s; el silencio de NON no permite saber si llegó.
 *   **To Edwin (Ops):** Como SED con sondeo cada 5 s, S respondió a 10/10 pings; RTT promedio 2,192 s y máximo 4,191 s en esta prueba, por debajo del objetivo provisional de 5 s.
 
-### Lab 4: Sensors & Control
+### Lab 4: Real Sensors
 *   **To Edwin:**
 
 ### Lab 5: Border Router
@@ -52,6 +52,9 @@
 ---
 
 ## 3. Architecture Decision Records (ADRs)
+
+### Lab 1: selección de canal
+
 **ADR-001: Channel Selection**
 *   **Context:** Se escanearon los canales 802.15.4 del 11 al 26 durante 500 ms por canal. Los canales 24 y 25 registraron el valor más bajo: −104 dBm.
 *   **Decision:** Usar el canal 25.
@@ -62,11 +65,15 @@
 
 **Comprobación al iniciar Lab 2:** Se repitió `ot scan energy 500` en A antes de fijar el canal del nuevo dataset. Los canales 17, 23, 24 y 25 empataron en −104 dBm; se mantuvo el canal 25 conforme al ADR-001. En A se eligieron 10 dBm de potencia de transmisión para esta prueba, en lugar de los 0 dBm indicados por la guía. Se detectó una lectura de 0 dBm en otra placa y se indicó fijar 10 dBm en B y C, pero no quedaron registradas lecturas de ambas después de cada reinicio.
 
+### Lab 2: topología de la red
+
 **ADR-002: Topología de la red del campo**
 *   **Context:** El campo necesita que un nodo alcance a otros aunque el enlace directo sea pobre y que la comunicación se recupere en menos de 120 s si cae un router. La guía pide comparar una malla Thread con una estrella de estilo LoRaWAN, cuyos dispositivos finales se comunican por un salto con gateways, sin usar a otro dispositivo final como relé.
 *   **Decision:** Usar una malla Thread dentro del SCD para la conectividad entre nodos, con routers alimentados de forma continua y nodos finales dormidos cuando el requisito de batería lo exija. La autonomía de tres meses queda pendiente de validación en Lab 4.
 *   **Rationale:** En esta prueba, A llegó a C a través de B con 20/20 respuestas, RTT promedio de 30,350 ms y `TxUnicast: 40` en B; al desconectar B, los tres tiempos estimados de recuperación fueron 8, 10 y 9 s, todos menores que 120 s. La estrella LoRaWAN no proporcionaría ese relé entre dispositivos finales en la topología ensayada. No se midió una red LoRaWAN en este laboratorio, por lo que la comparación con ella es arquitectónica. [Especificación LoRaWAN 1.0.4](https://lora-alliance.org/wp-content/uploads/2021/11/LoRaWAN-Link-Layer-Specification-v1.0.4.pdf).
 *   **Status:** [ ] Proposed | [x] Accepted | [ ] Deprecated
+
+### Lab 3: interfaces y sondeo
 
 **ADR-003: CoAP/UDP y CBOR para telemetría y órdenes en la malla**
 *   **Context:** El enlace Thread es restringido y el sistema necesita leer `/env/temp`, recibir cambios y enviar órdenes a `/act/valve` sin mantener una conexión TCP abierta. Los contratos están documentados en §4.
@@ -97,21 +104,20 @@
 | CoAP `/act/valve` y su contrato CBOR/CDDL | ASD | Servicio de control y lectura del estado de la válvula |
 | SED y sondeo al router padre | SCD | Comunicación del dispositivo cuando la radio receptora duerme |
 
-### Lab 3 — Contratos de las interfaces de aplicación (ASD)
+### Component Capabilities
 
-En Lab 3, S fue el servidor CoAP en UDP/5683 y C fue el cliente. Se usó la ML-EID de S `fd78:5b46:d53e:718c:b456:2f8:216a:a556` en las pruebas; esta dirección corresponde al dataset de Lab 3 y no sustituye las direcciones históricas de Lab 2.
-
-| Recurso | Métodos | Solicitud | Respuesta y formato | Política / códigos |
-|---|---|---|---|---|
-| `/env/temp` | GET; GET + Observe | Sin payload | Mapa CBOR `{"t": float16}` en °C, siempre 6 B; Content-Format 60 (`application/cbor`) | `2.05 Content`, Max-Age 60 s. Notificación NON si cambia >0,5 °C desde el último aviso; heartbeat CON tras 45 s sin aviso. |
-| `/act/valve` | PUT (fijar estado); GET (leer) | En PUT: CBOR `{"v": 0|1}` con Content-Format 60, o texto `0`/`1` sin Content-Format como envía la CLI | Mapa CBOR `{"v": 0|1}`; Content-Format 60 | `2.04 Changed` para PUT, `2.05 Content` para GET, `4.00 Bad Request` para otra carga. PUT es idempotente: repetir el mismo estado no lo invierte. |
-
-Bytes de ejemplo del contrato: `A1 61 74 F9 4E 20` representa `{"t": 24.5}`; `A1 61 76 00` y `A1 61 76 01` representan válvula cerrada y abierta. Nuestra lectura `A1 61 74 F9 4E 03` se decodificó como `{"t": 24.046875}` y S registró `2.05`.
-
-```cddl
-env-reading = { t: float16 }        ; °C
-valve-state = { v: 0 / 1 }          ; 0 = closed, 1 = open
-```
+| Capability Category | Subcategory | Component/Feature | Active/Latent | Lab Introduced |
+|---------------------|-------------|-------------------|---------------|----------------|
+| Transducer | Actuation | RGB LED: muestra el rol Thread | Active | Lab 2 |
+| Data | Radio | 802.15.4 TX/RX y RSSI usados | Active | Lab 1 |
+| Data | Storage | NVS guarda el dataset | Active | Lab 1 |
+| Data | Routing | Thread, MLE, 6LoWPAN e IPv6 en uso | Active | Lab 2 |
+| Interface | Network | Red 802.15.4 en uso | Active | Lab 1 |
+| Interface | Console | CLI `ot` y monitor serie en uso | Active | Lab 1 |
+| Interface | MAC | Filtro MAC habilitado y usado para fijar A–C en LQI 1 durante la Parte 3 | Active | Lab 2 |
+| Interface | Application | CoAP `/env/temp` y `/act/valve` sobre UDP/5683, con contratos CBOR/CDDL | Active | Lab 3 |
+| Supporting | Time and crypto | Sincronización de tiempo y acelerador criptográfico; aún no usados en las pruebas | Latent | Lab 1 |
+| Latent | Other radios | Wi-Fi y BLE no usados por Thread | Latent | Lab 1 |
 
 ### Lab 2 — Direcciones Thread
 
@@ -141,21 +147,6 @@ valve-state = { v: 0 / 1 }          ; 0 = closed, 1 = open
 | `ff02::2` | Routers del enlace |
 | `ff03::2` | Routers de la malla |
 
-### Component Capabilities
-
-| Capability Category | Subcategory | Component/Feature | Active/Latent | Lab Introduced |
-|---------------------|-------------|-------------------|---------------|----------------|
-| Transducer | Actuation | RGB LED: muestra el rol Thread | Active | Lab 2 |
-| Data | Radio | 802.15.4 TX/RX y RSSI usados | Active | Lab 1 |
-| Data | Storage | NVS guarda el dataset | Active | Lab 1 |
-| Data | Routing | Thread, MLE, 6LoWPAN e IPv6 en uso | Active | Lab 2 |
-| Interface | Network | Red 802.15.4 en uso | Active | Lab 1 |
-| Interface | Console | CLI `ot` y monitor serie en uso | Active | Lab 1 |
-| Interface | MAC | Filtro MAC habilitado y usado para fijar A–C en LQI 1 durante la Parte 3 | Active | Lab 2 |
-| Interface | Application | CoAP `/env/temp` y `/act/valve` sobre UDP/5683, con contratos CBOR/CDDL | Active | Lab 3 |
-| Supporting | Time and crypto | Sincronización de tiempo y acelerador criptográfico; aún no usados en las pruebas | Latent | Lab 1 |
-| Latent | Other radios | Wi-Fi y BLE no usados por Thread | Latent | Lab 1 |
-
 ### Lab 2 — Functional viewpoint: roles Thread
 
 | Rol | Función | Perfil de energía | Presente en esta prueba |
@@ -168,6 +159,21 @@ valve-state = { v: 0 / 1 }          ; 0 = closed, 1 = open
 
 Los routers y el leader mantienen la recepción activa, lo que dificulta cumplir el objetivo de tres meses con dos pilas AA de Lab 1. Para el campo requieren alimentación continua o una solución energética equivalente; los sensores a batería se evaluaron como SED en Lab 3. El consumo eléctrico no se midió aquí ni en Lab 3.
 
+### Lab 3 — Contratos de las interfaces de aplicación (ASD)
+
+En Lab 3, S fue el servidor CoAP en UDP/5683 y C fue el cliente. Se usó la ML-EID de S `fd78:5b46:d53e:718c:b456:2f8:216a:a556` en las pruebas; esta dirección corresponde al dataset de Lab 3 y no sustituye las direcciones históricas de Lab 2.
+
+| Recurso | Métodos | Solicitud | Respuesta y formato | Política / códigos |
+|---|---|---|---|---|
+| `/env/temp` | GET; GET + Observe | Sin payload | Mapa CBOR `{"t": float16}` en °C, siempre 6 B; Content-Format 60 (`application/cbor`) | `2.05 Content`, Max-Age 60 s. Notificación NON si cambia >0,5 °C desde el último aviso; heartbeat CON tras 45 s sin aviso. |
+| `/act/valve` | PUT (fijar estado); GET (leer) | En PUT: CBOR `{"v": 0|1}` con Content-Format 60, o texto `0`/`1` sin Content-Format como envía la CLI | Mapa CBOR `{"v": 0|1}`; Content-Format 60 | `2.04 Changed` para PUT, `2.05 Content` para GET, `4.00 Bad Request` para otra carga. PUT es idempotente: repetir el mismo estado no lo invierte. |
+
+Bytes de ejemplo del contrato: `A1 61 74 F9 4E 20` representa `{"t": 24.5}`; `A1 61 76 00` y `A1 61 76 01` representan válvula cerrada y abierta. Nuestra lectura `A1 61 74 F9 4E 03` se decodificó como `{"t": 24.046875}` y S registró `2.05`.
+
+```cddl
+env-reading = { t: float16 }        ; °C
+valve-state = { v: 0 / 1 }          ; 0 = closed, 1 = open
+```
 ---
 
 ## 5. First Principles Reflections
@@ -201,8 +207,49 @@ La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y
 | Lab 1: Max Range | > 20m | ___ m | [ ] Pass |
 | Lab 2: Healing Time | < 120s | ≈ 8, 10 y 9 s; promedio ≈ 9 s | [x] Pass |
 | Lab 3: CoAP Latency | < 200ms | 52,9 ms, GET C → S en un salto (una muestra, tiempo observado desde el PC) | [x] Pass en esta muestra |
-| Lab 4: Poll Latency | < 5s | ___ s | [ ] Pass |
+| Lab 3: Poll Latency (5 s period) | < 5s | 4,191 s máximo (10/10 pings; una serie) | [x] Pass en esta serie |
+| Lab 4: Time to see a lost sensor | ≤ 60s | ___ s | [ ] Pass |
+| Lab 4: Read failures, radio busy | < 5% | ___ % | [ ] Pass |
 | Lab 6: DTLS Time | < 3s | ___ s | [ ] Pass |
+
+### Lab 2 — Parte 3: comprobación de la ruta A → C
+
+Ambas pruebas usaron 20 pings de 64 bytes, enviados cada 0,5 s desde A a la ML-EID de C. Se reiniciaron los contadores MAC de B antes de cada prueba.
+
+| Condición | Pings recibidos | Pérdida | RTT mín./prom./máx. (ms) | `TxUnicast` en B |
+|-----------|-----------------|---------|--------------------------|------------------|
+| Antes de los filtros MAC | 20/20 | 0 % | 15/19,100/31 | 6 |
+| Con A–C fijado en LQI 1 en ambos sentidos | 20/20 | 0 % | 30/30,650/33 | 40 |
+
+Los 40 paquetes unicast transmitidos por B durante la segunda prueba coinciden con el reenvío esperado de 20 solicitudes y 20 respuestas. La comparación con los 6 anteriores verifica que el tráfico A–C pasó por B con los filtros activos. El RTT promedio aumentó 11,55 ms entre ambas pruebas.
+
+En una tabla de A tomada después de reconectar B, el enlace A–B marcó LQ 3/3, C mantuvo LQ 1/1 y la fila de C mostró `Next Hop 51` (B) con `Path Cost 1`. Con los costos de la guía, la ruta directa A–C cuesta 4 y la ruta A–B–C cuesta 1 + 1 = 2. Esta comparación corresponde a esa tabla posterior; las calidades fueron menores en la primera tabla tomada después de aplicar los filtros.
+
+### Lab 2 — Tarea 3.2: latencia por saltos
+
+Las dos mediciones de Lab 2 usaron 20 pings de 64 bytes a intervalos de 0,5 s, una prueba a la vez.
+
+| Ruta | Saltos | RTT mín./prom./máx. (ms) | Pérdida |
+|------|--------|--------------------------|---------|
+| A → B | 1 | 15/16,300/31 | 0 % (20/20) |
+| A → C, vía B | 2 | 30/30,350/31 | 0 % (20/20) |
+| Lab 1 A → B | 1 | Pendiente: no consta una medición comparable de 20 pings | Pendiente |
+
+En esta prueba, el segundo salto añadió 14,05 ms al RTT promedio respecto de A → B.
+
+### Lab 2 — Parte 4: recuperación al desconectar B
+
+Cada prueba usa 200 pings de 64 bytes desde A a la ML-EID de C, a un ping por segundo. B se desconecta después de unas diez respuestas correctas. El tiempo de recuperación se estima por los pings perdidos, según el procedimiento de la guía.
+
+| Ensayo | Pings perdidos | Recuperación estimada | Ruta observada después |
+|--------|----------------|-----------------------|------------------------|
+| 1 | 8 de 200 (4,0 %) | ≈ 8 s | A → C directa: C `Next Hop 63`; B ya no aparece en la tabla tras finalizar los 200 pings |
+| 2 | 10 de 200 (5,0 %) | ≈ 10 s | A → C directa: C `Next Hop 63`; B ausente de la tabla tras finalizar los 200 pings |
+| 3 | 9 de 200 (4,5 %) | ≈ 9 s | A → C directa: C `Next Hop 63`; B ausente de la tabla tras finalizar los 200 pings |
+
+Los tres ensayos quedaron por debajo del objetivo de 120 s de la guía. Estos tiempos son aproximaciones a partir del número de pings perdidos a un ping por segundo; no se anotaron marcas de tiempo independientes del corte y la reanudación.
+
+**Límites del registro:** No quedaron anotadas lecturas de `ot txpower` de B y C tras cada reconexión, ni una salida explícita de `ot state` de A antes del tercer ensayo. Sí se registró que B y C estaban como routers y que la tabla de A enviaba a C por B antes de ese ensayo. Estas verificaciones faltantes impiden afirmar que las tres pruebas mantuvieron condiciones idénticas de potencia y liderazgo.
 
 ### Lab 3 — tiempos de respuesta y sondeo
 
@@ -260,18 +307,19 @@ La guía compara tamaños de **mensajes CoAP**, antes de sumar UDP e IPv6. La co
 
 ## 7. Ethics & Sustainability Checklist
 
+*   [ ] **Lab 1:** Verified interference doesn't disrupt neighbors.
+*   [x] **Lab 2:** Se creó un dataset aleatorio propio y se ejecutó `ot thread stop` en las tres placas al terminar.
+*   [ ] **Lab 4:** Safe default when sensor data is missing (Safety).
+*   [ ] **Lab 4:** Data collection minimized (Privacy).
+*   [ ] **Lab 5:** System works locally without cloud (Sustainability).
+*   [ ] **Lab 6:** Encryption enabled (Privacy).
+*   [ ] **Lab 8:** End-of-Life plan considered.
+
 ### Lab 3 — seguridad de la válvula ante pérdida de red
 
 **Escenario y decisión:** S recibe `PUT /act/valve` con `{"v": 1}` y confirma OPEN; luego pierde el contacto con la red antes de recibir CLOSE. Si Thread pasa a `detached` mientras la válvula está abierta, S inicia un temporizador **local de 30 s**. Si continúa sin padre al vencer ese plazo, S ordena CLOSED por sí mismo y registra el cierre. Si vuelve a asociarse antes, cancela el temporizador. Es un período de gracia ante cambios breves de padre, tomado expresamente de la [parte B.2 del SOP-08](en/labs/sops/sop08_consolidation.md#b2--the-fail-safe-valve-fail-closed); **no** es un valor que aparezca en la guía del Lab 3 ni se deriva de los 95 s de `ResponseTimeout` de CoAP. Las recuperaciones de 8, 10 y 9 s de Lab 2 quedaron por debajo de ese margen, aunque fueron ensayos de routers y no validan todavía el comportamiento del SED. El plazo se cuenta desde que Thread **detecta** la desconexión, no necesariamente desde la pérdida física de la última trama. Al reiniciar, el estado seguro previsto es CLOSED; ante pérdida de alimentación, esto requiere además una válvula física normalmente cerrada.
 
 **Alcance y verificación:** el firmware actual de Lab 3 **no implementa** ese cierre automático: `valve_open` solo cambia al procesar un PUT. La prueba futura debe usar S como **SED child**, abrir la válvula, dejar a S sin ningún padre Thread y comprobar que se cierre aproximadamente 30 s después de observar `detached`, sin recibir un PUT CLOSE. Con S como router, perder enlaces no implica necesariamente `detached`: podría formar otra partición como leader, por lo que este detector no basta para cubrir ese rol. Esta protección contra pérdida de red tampoco fija la duración máxima de un riego cuando la red sigue conectada. Para ese segundo límite hacen falta el caudal `Q` (L/min), el volumen admisible `V_max` (L) y la duración normal del ciclo; entonces `T_max ≤ V_max/Q` minutos. Ninguno de esos valores consta en Lab 3.
-
-*   [ ] **Lab 1:** Verified interference doesn't disrupt neighbors.
-*   [x] **Lab 2:** Se creó un dataset aleatorio propio y se ejecutó `ot thread stop` en las tres placas al terminar.
-*   [ ] **Lab 4:** Data collection minimized (Privacy).
-*   [ ] **Lab 5:** System works locally without cloud (Sustainability).
-*   [ ] **Lab 6:** Encryption enabled (Privacy).
-*   [ ] **Lab 8:** End-of-Life plan considered.
 
 ---
 
@@ -288,7 +336,7 @@ La guía compara tamaños de **mensajes CoAP**, antes de sumar UDP e IPv6. La co
 
 ---
 
-## 9. Trustworthiness Audit (Lab 6+)
+## 9. Trustworthiness Audit (Lab 4+)
 
 | Characteristic | Addressed? | How | Gaps |
 |----------------|------------|-----|------|
@@ -321,42 +369,3 @@ La guía compara tamaños de **mensajes CoAP**, antes de sumar UDP e IPv6. La co
 | Supplemental (security) | |            |
 | Supplemental (orchestration) | |       |
 | Supplemental (management) | |          |
-
-### Lab 2 — Parte 3: comprobación de la ruta A → C
-
-Ambas pruebas usaron 20 pings de 64 bytes, enviados cada 0,5 s desde A a la ML-EID de C. Se reiniciaron los contadores MAC de B antes de cada prueba.
-
-| Condición | Pings recibidos | Pérdida | RTT mín./prom./máx. (ms) | `TxUnicast` en B |
-|-----------|-----------------|---------|--------------------------|------------------|
-| Antes de los filtros MAC | 20/20 | 0 % | 15/19,100/31 | 6 |
-| Con A–C fijado en LQI 1 en ambos sentidos | 20/20 | 0 % | 30/30,650/33 | 40 |
-
-Los 40 paquetes unicast transmitidos por B durante la segunda prueba coinciden con el reenvío esperado de 20 solicitudes y 20 respuestas. La comparación con los 6 anteriores verifica que el tráfico A–C pasó por B con los filtros activos. El RTT promedio aumentó 11,55 ms entre ambas pruebas.
-
-En una tabla de A tomada después de reconectar B, el enlace A–B marcó LQ 3/3, C mantuvo LQ 1/1 y la fila de C mostró `Next Hop 51` (B) con `Path Cost 1`. Con los costos de la guía, la ruta directa A–C cuesta 4 y la ruta A–B–C cuesta 1 + 1 = 2. Esta comparación corresponde a esa tabla posterior; las calidades fueron menores en la primera tabla tomada después de aplicar los filtros.
-
-### Lab 2 — Tarea 3.2: latencia por saltos
-
-Las dos mediciones de Lab 2 usaron 20 pings de 64 bytes a intervalos de 0,5 s, una prueba a la vez.
-
-| Ruta | Saltos | RTT mín./prom./máx. (ms) | Pérdida |
-|------|--------|--------------------------|---------|
-| A → B | 1 | 15/16,300/31 | 0 % (20/20) |
-| A → C, vía B | 2 | 30/30,350/31 | 0 % (20/20) |
-| Lab 1 A → B | 1 | Pendiente: no consta una medición comparable de 20 pings | Pendiente |
-
-En esta prueba, el segundo salto añadió 14,05 ms al RTT promedio respecto de A → B.
-
-### Lab 2 — Parte 4: recuperación al desconectar B
-
-Cada prueba usa 200 pings de 64 bytes desde A a la ML-EID de C, a un ping por segundo. B se desconecta después de unas diez respuestas correctas. El tiempo de recuperación se estima por los pings perdidos, según el procedimiento de la guía.
-
-| Ensayo | Pings perdidos | Recuperación estimada | Ruta observada después |
-|--------|----------------|-----------------------|------------------------|
-| 1 | 8 de 200 (4,0 %) | ≈ 8 s | A → C directa: C `Next Hop 63`; B ya no aparece en la tabla tras finalizar los 200 pings |
-| 2 | 10 de 200 (5,0 %) | ≈ 10 s | A → C directa: C `Next Hop 63`; B ausente de la tabla tras finalizar los 200 pings |
-| 3 | 9 de 200 (4,5 %) | ≈ 9 s | A → C directa: C `Next Hop 63`; B ausente de la tabla tras finalizar los 200 pings |
-
-Los tres ensayos quedaron por debajo del objetivo de 120 s de la guía. Estos tiempos son aproximaciones a partir del número de pings perdidos a un ping por segundo; no se anotaron marcas de tiempo independientes del corte y la reanudación.
-
-**Límites del registro:** No quedaron anotadas lecturas de `ot txpower` de B y C tras cada reconexión, ni una salida explícita de `ot state` de A antes del tercer ensayo. Sí se registró que B y C estaban como routers y que la tabla de A enviaba a C por B antes de ese ensayo. Estas verificaciones faltantes impiden afirmar que las tres pruebas mantuvieron condiciones idénticas de potencia y liderazgo.
