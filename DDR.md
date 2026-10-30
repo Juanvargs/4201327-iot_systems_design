@@ -11,7 +11,7 @@
 ## 1. System Overview
 
 *   **System Type:** [ ] Component (Lab 1-2) | [x] System (Lab 3-6) | [ ] Environment (Lab 7-8)
-*   **Description:** En Lab 1, dos placas ESP32-C6 formaron el enlace A–B. Las tablas de vecinos y direcciones link-local de esa sesión permiten identificar la MAC extendida de A como `9246a9aad28ba946` y la de B como `d6fb27c4755d37c9`; no se conservaron salidas directas de `ot extaddr` de ambas. En Lab 2, tres placas ESP32-C6 (dos C6 normales y una Super Mini) formaron una red Thread sobre radio 802.15.4. En Lab 3 se usaron dos C6 normales: S ofreció temperatura simulada y control de válvula mediante CoAP; C actuó como cliente. En Lab 4, S incorporó un módulo OKY3068 (DHT11) real y C consultó su temperatura y observó los cambios. En Lab 5, un ESP32-S3 N16R8 y una tercera C6 como RCP formaron el border router entre Thread y Wi-Fi; el portátil y el teléfono alcanzaron a S mediante su dirección OMR. Los roles Thread variaron durante las pruebas.
+*   **Description:** En Lab 1, dos placas ESP32-C6 formaron el enlace A–B. Las tablas de vecinos y direcciones link-local de esa sesión permiten identificar la MAC extendida de A como `9246a9aad28ba946` y la de B como `d6fb27c4755d37c9`; no se conservaron salidas directas de `ot extaddr` de ambas. En la repetición del 30 de octubre, las salidas directas de `ot extaddr` identificaron A como `72a51abeec58d4fc` y B como `1aa097bddbe796fe` después de `ot factoryreset` en B. En Lab 2, tres placas ESP32-C6 (dos C6 normales y una Super Mini) formaron una red Thread sobre radio 802.15.4. En Lab 3 se usaron dos C6 normales: S ofreció temperatura simulada y control de válvula mediante CoAP; C actuó como cliente. En Lab 4, S incorporó un módulo OKY3068 (DHT11) real y C consultó su temperatura y observó los cambios. En Lab 5, un ESP32-S3 N16R8 y una tercera C6 como RCP formaron el border router entre Thread y Wi-Fi; el portátil y el teléfono alcanzaron a S mediante su dirección OMR. Los roles Thread variaron durante las pruebas.
 
 ---
 
@@ -19,9 +19,9 @@
 
 ### Lab 1: RF Characterization
 
-*   **To Samuel (Architect):** El escaneo de energía de 500 ms por canal encontró −104 dBm en los canales 24 y 25; se eligió el 25 según ADR-001. Al iniciar Lab 2, otro escaneo encontró el mismo mínimo en 17, 23, 24 y 25. Se conservaron capturas de 100 pings con 0 % de pérdida a **0,4 m (40 cm)**, 1, 5, 10 y 20 m, y 1 % a 23 m; el equipo aclaró que el archivo `40.png` corresponde a **40 cm**. Una prueba distinta a 5 m fue comunicada con 1 % de pérdida y potencia indicada de 20 dBm. Las capturas no identifican el sentido ni incluyen RSSI. **23 m es la mayor distancia ensayada**; 20 m es la mayor distancia de las capturas que cumple PER < 1 % en la serie registrada. Como la guía exige **PER < 1 % en ambos sentidos** y un alcance **mayor que 20 m**, el objetivo no quedó demostrado. No se puede fijar aún el RSSI umbral, la separación recomendada ni un margen numérico por vegetación.
+*   **To Samuel (Architect):** El escaneo original de 500 ms por canal encontró −104 dBm en los canales 24 y 25; se eligió el 25 según ADR-001. Las capturas originales de 100 pings muestran 0 % de pérdida a **0,4 m (40 cm)**, 1, 5, 10 y 20 m, y 1 % a 23 m, pero no identifican el sentido ni incluyen RSSI. **23 m sigue siendo la mayor distancia ensayada en el conjunto histórico**. En la repetición del 30 de octubre, con canal 25 y 20 dBm configurados en A y B, se registraron RSSI y PER en ambos sentidos a 1, 5 y 10 m: 0 % en ambos sentidos a 1 y 5 m; a 10 m, 0 % A→B y 1 % B→A. A 20 m, A→B recibió 0/100 respuestas (100 % de pérdida), lo que activó la parada del procedimiento; allí no se registró RSSI ni la serie B→A. En esta repetición, 5 m fue la mayor distancia medida que cumplió PER < 1 % en ambos sentidos. El objetivo de alcance > 20 m no quedó demostrado, y aún no se puede fijar un umbral RSSI fiable ni una separación con margen numérico por vegetación.
 *   **To Gustavo (Product):** Veredicto: **seguir probando antes de dimensionar el campo**. Para 10 ha (= 100 000 m²), si se adopta una cuadrícula de separación fiable `s` metros después de medirla, una primera estimación sin bordes ni redundancia es `N ≈ ⌈100 000/s²⌉` nodos y `USD 40 × N` solo en placas. No se puede dar un número de nodos ni un costo total defendible mientras `s` no esté medido con margen para vegetación.
-*   **To Edwin (Ops):** Ficha de campo. Si B no se une: comprobar alimentación, `ot ifconfig`, `ot state`, mismo dataset y canal que A, y que el escaneo no muestre interferencia intensa en ese canal. Si la pérdida es intermitente: medir `ot neighbor table` en ambos extremos (el RSSI lo informa el receptor), repetir pings secuenciales con igual carga y potencia, revisar orientación/obstrucción de las antenas y volver a escanear. No se guardó un escaneo Wi-Fi del teléfono para atribuir el canal más ruidoso a un AP concreto.
+*   **To Edwin (Ops):** Ficha de campo. Si B no se une: comprobar alimentación, `ot ifconfig`, `ot state`, mismo dataset y canal que A, y que el escaneo no muestre interferencia intensa en ese canal. En la repetición, A y B llegaron a ser `leader` a la vez con el mismo dataset y 0 dBm; se reinició el dataset de B, se fijaron 20 dBm en ambas y B se unió como `router`. Si la pérdida es intermitente: medir `ot neighbor table` en ambos extremos (el RSSI lo informa el receptor), repetir pings secuenciales con igual carga y potencia, revisar orientación/obstrucción de las antenas y volver a escanear. El PC mostró varias redes Wi-Fi en canal 1 durante la repetición; no se identificó qué AP causó la energía detectada en el canal 802.15.4 12.
 
 ### Lab 2: 6LoWPAN
 
@@ -300,7 +300,7 @@ La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y
 
 | Metric | Target | Measured | Status |
 |--------|--------|----------|--------|
-| Lab 1: Max Range | > 20 m con PER < 1 % | Mayor distancia ensayada: 23 m, con 99/100 pings (1 %); a 20 m, 100/100. La captura `40.png` corresponde a 0,4 m. Sentido, RSSI y serie inversa no documentados | [ ] Objetivo > 20 m y alcance confiable bidireccional sin verificar |
+| Lab 1: Max Range | > 20 m con PER < 1 % | Serie histórica: 23 m, 99/100 en sentido no documentado; repetición con RSSI bidireccional: 5 m, 0 % en ambos sentidos; 10 m, 1 % B→A; 20 m, 0/100 A→B y parada. La captura `40.png` corresponde a 0,4 m | [ ] Objetivo > 20 m y alcance confiable bidireccional sin verificar |
 | Lab 2: Healing Time | < 120s | ≈ 8, 10 y 9 s; promedio ≈ 9 s | [x] Pass |
 | Lab 3: CoAP Latency | < 200ms | 52,9 ms, GET C → S en un salto (una muestra, tiempo observado desde el PC) | [x] Cumple esa muestra; faltan las series de 10 GET y 10 ping |
 | Lab 3: Poll Latency (5 s period) | < 5s | 4,191 s máximo (10/10 pings; una serie) | [x] Pass en esta serie |
@@ -318,8 +318,9 @@ La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Lab 1 (dBm) | −102 | −102 | −102 | −101 | −103 | −100 | −103 | −95 | **−93** | −103 | −103 | −103 | −103 | **−104** | **−104** | −96 |
 | Repetición al iniciar Lab 2 (dBm) | −78 | −78 | −82 | −102 | −103 | **−73** | −104 | −86 | −103 | −101 | −103 | −103 | −104 | −104 | −104 | −95 |
+| Repetición de Lab 1, 30 oct. (dBm) | −102 | **−84** | −103 | −101 | −103 | −101 | −102 | −95 | −103 | −95 | −103 | −103 | **−104** | −103 | **−104** | −95 |
 
-En Lab 1 el canal más ruidoso fue 19 (−93 dBm) y los más silenciosos 24 y 25 (−104 dBm). En la repetición, 16 fue el más ruidoso (−73 dBm), mientras 17, 23, 24 y 25 empataron en −104 dBm. Se mantuvo el 25. Según la guía, 24 se solapa con Wi-Fi 11 y 25 queda en un espacio entre canales Wi-Fi; no se conservó un escaneo de AP del teléfono para relacionar el canal 19 con una red concreta.
+En Lab 1 el canal más ruidoso fue 19 (−93 dBm) y los más silenciosos 24 y 25 (−104 dBm). En la repetición al iniciar Lab 2, 16 fue el más ruidoso (−73 dBm), mientras 17, 23, 24 y 25 empataron en −104 dBm. En la repetición del 30 de octubre, 12 fue el más ruidoso (−84 dBm), y 23 y 25 empataron en −104 dBm. Se mantuvo el 25 porque la figura de la clase sitúa 23 bajo Wi-Fi 11 y 25 en un espacio entre bandas Wi-Fi. `nmcli -f SSID,CHAN,SIGNAL dev wifi list` mostró varias redes cercanas en Wi-Fi canal 1, cuyo espectro se solapa con 802.15.4 canal 12; esto apoya la relación con interferencia Wi-Fi, pero no identifica al AP causante. No se conservó un escaneo Wi-Fi del teléfono de la sesión original.
 
 **Tareas A y C — identificación y enlace.** Se flashearon dos C6, A formó la red y B se unió; se comunicaron A como `leader`, B como `router` y un ping A→B exitoso. En las tablas de vecinos compartidas, la MAC extendida `9246a9aad28ba946` aparece con RLOC16 `0x6400` (A) y `d6fb27c4755d37c9` con `0x9c00` (B). La asignación concuerda con las direcciones link-local `fe80::9046:a9aa:d28b:a946` y `fe80::d4fb:27c4:755d:37c9`, respectivamente: su primer byte difiere de la MAC extendida en el bit `0x02`. Son identificaciones de esa sesión, no capturas directas de `ot extaddr`. No se conservó una pareja final de salidas `ot state` y `ot neighbor table` de ambas placas.
 
@@ -335,9 +336,26 @@ En Lab 1 el canal más ruidoso fue 19 (−93 dBm) y los más silenciosos 24 y 25
 | 23 m | [captura](docs/img/lab1_23m.png) | 99/100 | 1 % | 13/15,616/140 | No constan |
 | 30 m | Sin captura | — | — | — | Prueba pedida por la guía, sin registro |
 
-Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida** y potencia indicada de **20 dBm**; no sustituye la captura `5.png`, que muestra 0 %, ni confirma la potencia de ambas placas en todas las distancias. El 1 % de 23 m **no supera** el 1 % y tampoco satisface el criterio estricto **PER < 1 %**. Entre las capturas, **20 m es la mayor distancia con PER < 1 % en la serie registrada**, mientras 23 m es la mayor distancia ensayada; esto no demuestra un alcance confiable bidireccional ni que el enlace empiece a fallar justo después de 20 m. Deben repetirse las pruebas en ambos sentidos y registrarse RSSI, potencia, lugar y orientación. Sin pares distancia–RSSI no procede dibujar una gráfica experimental ni fijar el RSSI umbral o el espaciamiento con margen por vegetación.
+Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida** y potencia indicada de **20 dBm**; no sustituye la captura `5.png`, que muestra 0 %, ni confirma la potencia de ambas placas en todas las distancias de la serie histórica. El 1 % de 23 m **no supera** el 1 % y tampoco satisface el criterio estricto **PER < 1 %**. Entre esas capturas, **20 m es la mayor distancia con PER < 1 % en la serie registrada**, mientras 23 m es la mayor distancia ensayada; esa serie, por sí sola, no demuestra un alcance confiable bidireccional ni que el enlace empiece a fallar justo después de 20 m. La repetición con RSSI y sentidos identificados se registra por separado a continuación.
 
-No constan predicciones fechadas antes de Lab 1 ni las tareas opcionales de reintentos MAC, colisiones simultáneas y captura de trama. La comparación del escaneo con redes Wi-Fi visibles en el teléfono, la confirmación de `ot txpower` en ambas placas y la verificación de radios apagadas al final también carecen de registro.
+**Tarea D — repetición del 30 de octubre.** A: `ot extaddr 72a51abeec58d4fc`, `leader`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:0`. B: `ot extaddr 1aa097bddbe796fe` después de `ot factoryreset`, `router`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:2c00`. El escaneo llevó a elegir el canal 25; `ot txpower` mostró 20 dBm en ambas antes de los ensayos. Se enviaron 100 pings de 64 B cada 0,2 s por sentido, sin simultaneidad. `Avg RSSI` se tomó de la tabla de vecinos del **receptor** después de las dos series de cada distancia. Las cifras siguientes son de esta repetición y no sustituyen las capturas históricas anteriores.
+
+| Distancia | RSSI A→B (tabla B) | RSSI B→A (tabla A) | A→B recibidos / pérdida | B→A recibidos / pérdida | RTT promedio A→B / B→A |
+|---:|---:|---:|---|---|---|
+| 1 m | −81 dBm | −80 dBm | 100/100 · 0 % | 100/100 · 0 % | 14,020 / 14,460 ms |
+| 5 m | −77 dBm | −78 dBm | 100/100 · 0 % | 100/100 · 0 % | 14,310 / 14,200 ms |
+| 10 m | −86 dBm | −87 dBm | 100/100 · 0 % | 99/100 · 1 % | 14,650 / 14,111 ms |
+| 20 m | No medido | No medido | 0/100 · 100 % | No medido | No disponible |
+
+La guía indica detener el recorrido cuando PER supera 10 %; por ello no se ejecutaron B→A a 20 m ni la prueba de 30 m en esta repetición. Tampoco se recibieron las salidas de `ot state` y `ot neighbor table` a 20 m, así que no consta si había un vecino visible a esa distancia. En esta serie, 5 m es la mayor distancia con PER < 1 % **medido en ambos sentidos**; a 10 m, el 1 % de B→A ya incumple ese criterio estricto. El RSSI de 5 m resultó más fuerte que el de 1 m, por lo que estas muestras no establecen una caída monótona ni un umbral de fiabilidad. Las lecturas de 1, 5 y 10 m permiten graficar esos puntos contra `log₁₀(distancia)`, pero no fijar un RSSI experimental para el fallo de 20 m ni un margen por vegetación.
+
+| Proyección teórica a 20 m — **no es medición** | RSSI A→B | RSSI B→A | Cálculo |
+|---|---:|---:|---|
+| Caída ideal de 6 dB al duplicar 10 m → 20 m | −92 dBm | −93 dBm | −86 − 6; −87 − 6 |
+
+Esta proyección usa el supuesto de espacio libre de la guía; no procede de `ot neighbor table` y no explica por sí sola el 100 % de pérdida observado A→B a 20 m.
+
+No constan predicciones fechadas antes de Lab 1 ni las tareas opcionales de reintentos MAC, colisiones simultáneas y captura de trama. En la repetición sí se comparó el escaneo de 802.15.4 con redes Wi-Fi detectadas por el PC y se verificó `ot txpower` en ambas placas; no consta una verificación de radios apagadas al final.
 
 ### Lab 2: rendimiento y recuperación de la malla
 
