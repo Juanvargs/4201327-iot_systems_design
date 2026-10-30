@@ -4,14 +4,14 @@
 
 **Integrantes:** Valeria Corredor García; Juan Felipe Camacho García; Juan Pablo Vargas Córdoba.
 
-**Alcance del registro:** laboratorios 1–4. Los apartados de los laboratorios posteriores se conservan según la plantilla y se indican como pendientes. Las cifras de ensayos se distinguen de las estimaciones y de la fila simulada del DHT22.
+**Alcance del registro:** laboratorios 1–5. Los apartados de los laboratorios posteriores se conservan según la plantilla y se indican como pendientes. Las cifras de ensayos se distinguen de las estimaciones y de la fila simulada del DHT22.
 
 ---
 
 ## 1. System Overview
 
 *   **System Type:** [ ] Component (Lab 1-2) | [x] System (Lab 3-6) | [ ] Environment (Lab 7-8)
-*   **Description:** En Lab 2, tres placas ESP32-C6 (dos C6 normales y una Super Mini) formaron una red Thread sobre radio 802.15.4. En Lab 3 se usaron dos C6 normales: S ofreció temperatura simulada y control de válvula mediante CoAP; C actuó como cliente. En Lab 4, S incorporó un módulo OKY3068 (DHT11) real y C consultó su temperatura y observó los cambios. Los roles Thread de las placas variaron durante las pruebas.
+*   **Description:** En Lab 1, dos placas ESP32-C6 formaron el enlace A–B. Las tablas de vecinos y direcciones link-local de esa sesión permiten identificar la MAC extendida de A como `9246a9aad28ba946` y la de B como `d6fb27c4755d37c9`; no se conservaron salidas directas de `ot extaddr` de ambas. En Lab 2, tres placas ESP32-C6 (dos C6 normales y una Super Mini) formaron una red Thread sobre radio 802.15.4. En Lab 3 se usaron dos C6 normales: S ofreció temperatura simulada y control de válvula mediante CoAP; C actuó como cliente. En Lab 4, S incorporó un módulo OKY3068 (DHT11) real y C consultó su temperatura y observó los cambios. En Lab 5, un ESP32-S3 N16R8 y una tercera C6 como RCP formaron el border router entre Thread y Wi-Fi; el portátil y el teléfono alcanzaron a S mediante su dirección OMR. Los roles Thread variaron durante las pruebas.
 
 ---
 
@@ -19,8 +19,9 @@
 
 ### Lab 1: RF Characterization
 
-*   **To Samuel (Architect):** El escaneo de energía de 500 ms por canal encontró −104 dBm en los canales 24 y 25; se eligió el canal 25 según ADR-001. Un segundo escaneo al iniciar Lab 2 encontró el mismo mínimo en 17, 23, 24 y 25, por lo que se mantuvo el 25.
-*   **To Edwin (Ops):** Si aumenta la pérdida de paquetes, repetir el escaneo y comprobar los canales Wi-Fi cercanos; no se midieron los canales de los routers del entorno ni consta una distancia máxima de alcance.
+*   **To Samuel (Architect):** El escaneo de energía de 500 ms por canal encontró −104 dBm en los canales 24 y 25; se eligió el 25 según ADR-001. Al iniciar Lab 2, otro escaneo encontró el mismo mínimo en 17, 23, 24 y 25. Se conservaron capturas de 100 pings con 0 % de pérdida a 1, 5, 10, 20 y 40 m, y 1 % a 23 m; el nombre de cada archivo indica la distancia, como confirmó el equipo. Una prueba distinta a 5 m fue comunicada con 1 % de pérdida y potencia indicada de 20 dBm. Las capturas no identifican el sentido ni incluyen RSSI. Como la guía exige **PER < 1 % en ambos sentidos**, 40 m es la mayor distancia ensayada con 100/100 en una captura, pero no un alcance confiable bidireccional demostrado. No se puede fijar aún el RSSI umbral, la separación recomendada ni un margen numérico por vegetación.
+*   **To Gustavo (Product):** Veredicto: **seguir probando antes de dimensionar el campo**. Para 10 ha (= 100 000 m²), si se adopta una cuadrícula de separación fiable `s` metros después de medirla, una primera estimación sin bordes ni redundancia es `N ≈ ⌈100 000/s²⌉` nodos y `USD 40 × N` solo en placas. No se puede dar un número de nodos ni un costo total defendible mientras `s` no esté medido con margen para vegetación.
+*   **To Edwin (Ops):** Ficha de campo. Si B no se une: comprobar alimentación, `ot ifconfig`, `ot state`, mismo dataset y canal que A, y que el escaneo no muestre interferencia intensa en ese canal. Si la pérdida es intermitente: medir `ot neighbor table` en ambos extremos (el RSSI lo informa el receptor), repetir pings secuenciales con igual carga y potencia, revisar orientación/obstrucción de las antenas y volver a escanear. No se guardó un escaneo Wi-Fi del teléfono para atribuir el canal más ruidoso a un AP concreto.
 
 ### Lab 2: 6LoWPAN
 
@@ -37,16 +38,21 @@
 *   **To Edwin (Ops):** Un PUT CON se confirma con la respuesta CoAP y el estado de válvula `{"v": 0|1}`; S registró `2.04 Changed` al ejecutar la orden.
 *   **To Edwin (Ops):** Con S fuera de la red, C reintentó CON y declaró `ResponseTimeout` tras 95 s; el silencio de NON no permite saber si llegó.
 *   **To Edwin (Ops):** Como SED con sondeo cada 5 s, S respondió a 10/10 pings; RTT promedio 2,192 s y máximo 4,191 s en esta prueba, por debajo del objetivo provisional de 5 s.
+*   **To Samuel (Architect):** El PUT CON permite confirmar una orden o informar un timeout; el período de sondeo de 5 s es una propuesta basada en la latencia medida, con autonomía aún sin verificar. Los tamaños de CoAP/CBOR están en §6 y los contratos en §4.
 
 ### Lab 4: Real Sensors
 
+*   **To Daniela:** El DHT11 dio 23,0 °C frente a una referencia de 24,1 °C colocada a su lado (−1,1 °C en ese instante, dentro de la precisión declarada ±2 °C); mostró pasos de 1 °C y una subida de 5 °C al soplar. Son datos de una unidad y una comparación puntual. El firmware rechazó 90 °C y un salto de +8,5 °C, pero aceptó un valor falso plausible de 25,5 °C. No quedó documentada la visualización del fallo del sensor en el panel durante Lab 4.
+*   **To Samuel (Architect):** `/env/temp` conserva el CBOR de Lab 3 y ahora ofrece una lectura real, Max-Age decreciente dentro de 60 s y 5.03 al vencer la frescura. Un Observe terminado requiere una nueva suscripción. El contrato exacto figura en §4.
 *   **To Edwin:** Si el sensor deja de entregar lecturas pero S sigue en la red, C recibió `no fresh reading` 51 s después de retirar DATA en la prueba cronometrada; S responde 5.03 cuando ya no hay una lectura válida de menos de 60 s.
 *   **To Edwin:** Si S sale de Thread, C no recibe respuesta: el GET CON terminó en `ResponseTimeout` a los 90 s en nuestra prueba. El silencio de Observe por sí solo no identifica la causa.
 *   **To Edwin:** Al reconectar DATA, S registró `Sensor back` en unos 2 s y declaró el GET disponible con 2.05 otros 516 ms después. Tras 5.03 o RESET, C debe registrar Observe otra vez; después del RESET hubo que iniciar Thread manualmente en S.
 
 ### Lab 5: Border Router
 
-*   **To Daniela:** Pendiente de Lab 5.
+*   **To Daniela:** El panel en el teléfono mostró la temperatura de S y permitió abrir y cerrar la válvula: S registró `OPEN -> 2.04` y `CLOSED -> 2.04` y el LED se puso blanco al abrir. La [captura de pantalla del teléfono](docs/img/lab5_dashboard_phone.jpeg) muestra el gráfico, las notificaciones Observe y el estado final `closed`. Los 10 GET CoAP desde el portátil tuvieron mediana de 34 ms; **no se cronometró la interacción completa desde el teléfono**. Al apagar el S3, C siguió ordenando la válvula dentro de Thread, mientras el GET del portátil falló con `NetworkError` en 11,736 s. La malla local siguió funcionando, pero el acceso desde fuera dependía del border router.
+*   **To Edwin (Ops):** Sin el S3, un PUT CON desde C a S dentro de Thread siguió funcionando; el portátil perdió acceso externo y su GET falló en 11,736 s. Al restaurar el S3, `ot br state` volvió a `running`; en esta sesión regresó como router.
+*   **To Samuel (Architect):** La ruta OMR fue anunciada por RA al portátil; hubo 9/10 respuestas ICMPv6 portátil → S (RTT promedio 69,870 ms), 10/10 GET CoAP (mediana 34 ms) y 10/10 pings NAT64 S → 8.8.8.8 (promedio 167,500 ms). La resta entre dos series distintas de ping produjo −15,457 ms y no determina el costo propio del OTBR.
 
 ### Lab 6: Security
 
@@ -94,42 +100,60 @@
 *   **Rationale:** Con 5 s se obtuvieron 10/10 pings, RTT promedio 2,192 s y máximo 4,191 s; con 15 s el máximo fue 13,845 s, y con 1 s fue 0,932 s pero aumenta la frecuencia de sondeo. En el modelo de energía de §6, 5 s da 17,114 mA y ~7,3 días si el reposo consume 17 mA; el firmware no ha demostrado light sleep, así que el objetivo de tres meses con 2× AA no está validado. El período se elige por el límite provisional de latencia, no por preferencia subjetiva.
 *   **Status:** [x] Proposed | [ ] Accepted | [ ] Deprecated
 
+### ADR-005: Un border router para el piloto (Lab 5)
+
+*   **Context:** Daniela necesita ver la temperatura y controlar la válvula desde su teléfono. S y C ya se comunican por Thread, pero el teléfono y el portátil están en Wi-Fi. El piloto contó con un ESP32-S3 N16R8 unido por UART a una C6 RCP.
+*   **Decision:** Usar ese único border router para unir la malla Thread al hotspot Wi-Fi del piloto, anunciar el prefijo OMR y ofrecer NAT64. Mantener el intercambio C → S dentro de la malla independiente de él.
+*   **Rationale:** `ot br state` quedó en `running`; el portátil recibió por RA la ruta OMR y obtuvo 10/10 GET CoAP a S con mediana de 34 ms. El teléfono mostró el panel y S ejecutó PUT OPEN y CLOSE con respuesta `2.04`. El RTT portátil → S fue 69,870 ms de promedio (9/10) y NAT64 S → 8.8.8.8, 167,500 ms (10/10). Apagado el S3, C obtuvo respuesta `a1617601` de S a un PUT, pero el GET del portátil falló en 11,736 s. Se acepta **un punto único de fallo para el acceso externo** en este piloto; la comunicación local C → S no dependió del S3 en la prueba. La medición de 10 pings no permitió aislar un costo positivo del border router frente al salto Wi-Fi, como se detalla en §6.
+*   **Status:** [ ] Proposed | [x] Accepted | [ ] Deprecated
+
 ---
 
 ## 4. ISO/IEC 30141 Mapping
 
 ### Domain Mapping
 
+**Lab 1 — límite PED/SCD:** el aire y la interferencia Wi-Fi son parte del dominio de entidad física (PED). La antena es el límite físico que convierte las señales eléctricas de la radio del dispositivo (SCD) en ondas, y viceversa. El escaneo observó el medio a través de ese subsistema; no midió directamente un router Wi-Fi vecino.
+
 | Component | ISO Domain | Justification |
 |-----------|------------|---------------|
 | ESP32-C6 SoC | SCD | Sensing/controlling device (§6.4–6.5) |
 | 802.15.4 radio + antenna | SCD | Communication subsystem |
 | Air (RF medium) | PED | Physical entity — EM propagation |
-| Temperatura del aire junto al DHT11 | PED | Magnitud física observada en Lab 4; la referencia colocada al lado marcó 24,1 °C cuando el DHT11 marcó 23,0 °C |
-| Módulo OKY3068 (DHT11) | SCD | Transductor que mide temperatura y humedad; S lo consulta aproximadamente cada 2 s |
-| Lectura y comprobaciones de plausibilidad en S | SCD | Adquisición y rechazo de valores fuera de −40..85 °C o de saltos mayores de 5 °C respecto de una lectura reciente |
 | Thread routers, links and MLE | SCD | Communication subsystem of the routed mesh |
 | ML-EID reachability for later application services | SCD ↔ ASD | Stable device addressing exposed to application services from Lab 3 onward |
 | CoAP `/env/temp` y su contrato CBOR/CDDL | ASD | Servicio de lectura y observación de temperatura; en Lab 4 declara precisión DHT11 ±2 °C, frescura mediante Max-Age y respuesta 5.03 si no hay lectura reciente |
 | CoAP `/act/valve` y su contrato CBOR/CDDL | ASD | Servicio de control y lectura del estado de la válvula |
 | SED y sondeo al router padre | SCD | Comunicación del dispositivo cuando la radio receptora duerme |
+| Temperatura del aire junto al DHT11 | PED | Magnitud física observada en Lab 4; la referencia colocada al lado marcó 24,1 °C cuando el DHT11 marcó 23,0 °C |
+| Módulo OKY3068 (DHT11) | SCD | Transductor que mide temperatura y humedad; S lo consulta aproximadamente cada 2 s |
+| Lectura y comprobaciones de plausibilidad en S | SCD | Adquisición y rechazo de valores fuera de −40..85 °C o de saltos mayores de 5 °C respecto de una lectura reciente |
+| ESP32-S3 N16R8 + C6 RCP | SCD | Gateway IoT alojado en SCD: UART/Spinel hacia la radio Thread y Wi-Fi hacia el hotspot; las funciones no implementadas se detallan en el scorecard de Lab 5 |
+| Panel CoAP en el portátil | ASD | Presenta `/env/temp` y envía PUT `/act/valve` a S mediante la ruta OMR del border router |
 
 ### Component Capabilities
 
 | Capability Category | Subcategory | Component/Feature | Active/Latent | Lab Introduced |
 |---------------------|-------------|-------------------|---------------|----------------|
-| Transducer | Actuation | RGB LED: muestra el rol Thread | Active | Lab 2 |
 | Data | Radio | 802.15.4 TX/RX y RSSI usados | Active | Lab 1 |
 | Data | Storage | NVS guarda el dataset | Active | Lab 1 |
-| Data | Routing | Thread, MLE, 6LoWPAN e IPv6 en uso | Active | Lab 2 |
 | Interface | Network | Red 802.15.4 en uso | Active | Lab 1 |
 | Interface | Console | CLI `ot` y monitor serie en uso | Active | Lab 1 |
+| Interface | USB | Enlace USB usado para flashear y leer la consola serie de las C6 | Active | Lab 1 |
+| Supporting | Time and crypto | Sincronización de tiempo y acelerador criptográfico; aún no usados en las pruebas | Latent | Lab 1 |
+| Interface | Other radios | BLE no usado en el sistema probado; Wi-Fi de S y C no usado por Thread | Latent | Lab 1 |
+| Transducer | Actuation | RGB LED: muestra el rol Thread | Active | Lab 2 |
+| Data | Routing | Thread, MLE, 6LoWPAN e IPv6 en uso | Active | Lab 2 |
 | Interface | MAC | Filtro MAC habilitado y usado para fijar A–C en LQI 1 durante la Parte 3 | Active | Lab 2 |
 | Interface | Application | CoAP `/env/temp` y `/act/valve` sobre UDP/5683, con contratos CBOR/CDDL | Active | Lab 3 |
 | Transducer | Sensing | DHT11 OKY3068: temperatura y humedad reales | Active | Lab 4 |
 | Data | Validation | Rechazo por rango y salto de temperatura; límite de frescura de 60 s | Active | Lab 4 |
-| Supporting | Time and crypto | Sincronización de tiempo y acelerador criptográfico; aún no usados en las pruebas | Latent | Lab 1 |
-| Latent | Other radios | Wi-Fi y BLE no usados por Thread | Latent | Lab 1 |
+| Data | Gateway | Border routing IPv6, anuncio OMR y NAT64 mediante S3 + C6 RCP | Active | Lab 5 |
+| Data | Storage | Dataset Thread del S3 en RAM; restauración manual con `ot dataset set active` tras apagarlo | Active | Lab 5 |
+| Interface | Network | UART/Spinel S3 ↔ C6 RCP y Wi-Fi 2,4 GHz WPA2 del S3 | Active | Lab 5 |
+| Interface | Human UI | Panel CoAP servido en el portátil y abierto desde el teléfono | Active | Lab 5 |
+
+**Motivo del estado:** se marca *Active* cuando hay una acción o salida conservada que usó la capacidad: escaneo y pings para la radio, consola para USB/CLI, tablas de ruta para Thread, respuestas CoAP para las interfaces de aplicación, `soilsense stats` para DHT11, y OMR/NAT64 para el gateway. *Latent* significa que la placa ofrece la función, pero las pruebas no la activaron como parte del sistema (BLE, Wi-Fi de las C6 de campo, sincronización de tiempo y aceleración criptográfica). La presencia de hardware no se toma como evidencia de uso.
 
 ### Lab 2: direcciones Thread
 
@@ -203,11 +227,41 @@ S usa el módulo OKY3068 (DHT11). El recurso conserva GET, GET + Observe, el pay
 env-reading = { t: float16 }        ; °C, precisión según sensor, fresco durante Max-Age s
 ```
 
+### Lab 5: gateway y redes del patrón empresarial
+
+La [guía de Lab 5](labs/lab5.md) cita la tabla A.3 de ISO/IEC 30141: “IoT gateways are devices which connect SCD with other domains.” En la figura A.5, el gateway está **alojado en SCD**. En esta prueba fue el ESP32-S3 con la C6 RCP; no se demostró un dominio RAID.
+
+**Evidencia de arranque y enrutamiento:** el S3 detectó `Found 8MB PSRAM device`; `ot version` devolvió `OPENTHREAD/e4d97681c; Zephyr; Oct 27 2026 12:13:44` y `ot rcp version` devolvió `OPENTHREAD/e4d97681c; Zephyr; Oct 27 2026 13:05:27`. El hotspot `pipe` figuró como WPA2-PSK en 2,4 GHz y `ot br state` como `running`. `ot nat64 state` mostró `PrefixManager: Active` y `Translator: Active`. `ot netdata show` anunció `fdb8:76b7:2f59:1::/64 paos low 6000`, la ruta `fc00::/7 sa med 6000` y `fdb8:76b7:2f59:2:0:0::/96 sn low 6000`. `ot br omrprefix` mostró el mismo `/64` como `Local` y `Favored`, con preferencia baja. Es una **ULA** (`fd…`), no un prefijo global: no se observó una delegación global del hotspot y el OTBR usó su prefijo local, como contempla el SOP.
+
+| Función de gateway de la tabla A.3 | Evaluación en Lab 5 | Evidencia o límite |
+|---|---|---|
+| Conversión de protocolos | Activa para el transporte de red | El S3 llevó paquetes entre 802.15.4/Thread y Wi-Fi; NAT64 permitió a S alcanzar `8.8.8.8` mediante una dirección IPv6 sintetizada. No interpretó el CBOR de la aplicación. |
+| Mapeo de direcciones | Activo | El prefijo OMR `fdb8:76b7:2f59:1::/64` apareció en S y C; el portátil recibió una ruta `proto ra` vía la dirección link-local Wi-Fi del S3. NAT64 anunció `fdb8:76b7:2f59:2::/96`. |
+| Procesamiento de datos | No demostrado en el gateway | La decodificación de `{'t': 25.0}` y la presentación del gráfico ocurrieron en el cliente/panel del portátil; no se observó procesamiento de la temperatura dentro del S3. |
+| Fusión de información | No implementada en la prueba | Solo se presentó la temperatura de S; no se combinaron datos de varios sensores en el S3. |
+| Certificación | No demostrada | No hubo prueba de certificación o autorización de dispositivos en el gateway. El acceso de aplicación careció de autenticación en este lab. |
+| Gestión de equipos | Manual, no automatizada | La conexión Wi-Fi, el dataset y la recuperación tras apagar el S3 exigieron comandos de consola; no se probó gestión remota de S y C. |
+
+La tabla A.4 y la figura A.6 de la misma guía distinguen las redes por su función. Las direcciones siguientes pertenecen **a la prueba de Lab 5**, no a los datasets históricos de Lab 2–4.
+
+| Red (tabla A.4) | Uso observado | Direcciones registradas |
+|---|---|---|
+| Proximidad | Malla Thread de S, C y la C6 RCP del OTBR | Prefijo mesh-local `fd24:d7ea:2e12:c675::/64`; ML-EID de S `fd24:d7ea:2e12:c675:510a:453d:3148:7f87`; OMR de S `fdb8:76b7:2f59:1:3654:3e83:5e42:fdf5` y de C `fdb8:76b7:2f59:1:daad:245a:98b5:d136` |
+| Acceso | Wi-Fi del S3 y hotspot `pipe`, compartido con el portátil | S3 `10.205.63.133/24`, Wi-Fi link-local `fe80::226e:f1ff:fe98:5e10`; portátil `10.205.63.57/24`; puerta de enlace DHCP `10.205.63.9` |
+| Servicios | Panel CoAP del portátil; prueba de conectividad a IPv4 mediante NAT64 | Panel `http://10.205.63.57:5000`; destino IPv4 `8.8.8.8`, sintetizado como `fdb8:76b7:2f59:2:0:0:808:808`. No se desplegó un servicio cloud propio. |
+| Usuario | Navegador de Daniela en el teléfono que proporcionó el hotspot | Abrió el panel en `http://10.205.63.57:5000`; no se registró la dirección IP del teléfono ni una red de usuario separada. |
+
+**Direcciones de S:** `fe80:0:0:0:70a5:1abe:ec58:d4fc` es link-local; `fd24:d7ea:2e12:c675:510a:453d:3148:7f87` es su ML-EID; `fd24:d7ea:2e12:c675:0:ff:fe00:0` fue su RLOC; `fdb8:76b7:2f59:1:3654:3e83:5e42:fdf5` es su OMR. Esa cuarta categoría de dirección es la nueva frente a Lab 4. La tabla `ot router table` del S3 mostró a S (`0x0000`) a través de C (`0x7400`, Next Hop 29), y al propio S3 como fila local `0x6000`; `ot child table` estaba vacía cuando S y C ya eran routers.
+
 ---
 
 ## 5. First Principles Reflections
 
-**Lab 1:** No constan respuestas a preguntas de primeros principios de ese laboratorio en el registro disponible.
+### Lab 1: propagación, fiabilidad y coexistencia
+
+1. **¿Por qué cae el RSSI con la distancia y cuánto por cada duplicación?** Al propagarse, la misma potencia se reparte sobre una superficie cada vez mayor. En espacio libre ideal, la pérdida crece aproximadamente **6 dB por cada duplicación de distancia** (`20 log₁₀ 2 ≈ 6,02 dB`). Paredes, vegetación, reflexión, orientación de antenas e interferencia pueden cambiar esa pendiente. No hay una serie de RSSI por distancia en nuestra bitácora para medir una pendiente propia.
+2. **¿Por qué decodificar cerca de −100 dBm no basta para PER < 1 %?** La sensibilidad cercana a −100 dBm se refiere a recepción en condiciones especificadas, no a que casi todos los paquetes lleguen en un campo real. Se necesita margen frente a desvanecimientos, obstáculos, interferencia, colisiones y asimetría entre A→B y B→A. Los ACK y reintentos MAC pueden ocultar pérdidas de tramas incluso cuando un ping llega. La observación a 5 m con 1 % de pérdida no permite calcular los decibelios de margen: no se registró el RSSI correspondiente ni la serie de ambas direcciones.
+3. **Opcional: ¿cómo coexiste 802.15.4 con Wi-Fi en 2,4 GHz?** El espectro ensanchado de 802.15.4 permite correlacionar sus símbolos frente a parte del ruido, y CSMA/CA intenta transmitir cuando el canal está libre; los ACK y reintentos pueden recuperar tramas perdidas. Nada de esto garantiza entrega ante solapamiento o interferencia sostenida. Se escaneó energía, pero no se capturó una trama ni se hizo una prueba controlada con Wi-Fi encendido/apagado.
 
 ### Lab 2: red Thread y 6LoWPAN
 
@@ -216,6 +270,8 @@ env-reading = { t: float16 }        ; °C, precisión según sensor, fresco dura
 3. **¿Por qué A–C debía ser un enlace pobre y no inexistente?** Con B activo, su ruta de dos saltos era preferible; al fallar B, el enlace A–C de LQI 1 seguía disponible y A pudo alcanzar C directamente (`Next Hop 63`). Una lista MAC que negara por completo el enlace A–C habría eliminado ese respaldo y la comunicación no se habría recuperado con solo estas tres placas. En el campo se necesita cobertura solapada y al menos una ruta alternativa; su alcance real con obstáculos y vegetación aún requiere pruebas.
 
 La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y no se realizó.
+
+**Preguntas operativas de la Parte 2.** En `ot router table`, `Next Hop 51` para C indicaba que A enviaba hacia B (ID 51), mientras `63` indicaba ruta directa; `Path Cost` expresa el costo anunciado de la ruta y `Link=1` un enlace establecido. Los grupos `ff02::2` y `ff03::2` son de routers: un nodo que pasa a `child` deja de pertenecer a esos grupos. La salida `ot ipmaddr` se guardó para A, B y C cuando eran routers; no se guardó una salida del mismo nodo en `child` para comparar experimentalmente. La tabla y las direcciones están en §4.
 
 ### Lab 3: preguntas de la Parte 7
 
@@ -228,8 +284,15 @@ La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y
 
 1. **¿Por qué `/env/temp` responde 5.03 en vez de servir el último valor?** Max-Age promete cuánto tiempo más puede considerarse fresca una lectura: el firmware parte de 60 s desde la última lectura aceptada y reduce ese plazo conforme envejece. Con DATA desconectado, S todavía sirvió 23,00 °C con edades de 15, 30 y 45 s y Max-Age de 45, 30 y 15 s. Al agotarse la ventana, registró 5.03 y C recibió `no fresh reading`. Presentar esos 23,00 °C como una medición actual después de perder el sensor podría llevar a Daniela a decidir un riego con información vencida. El 5.03 distingue la falta de dato fresco de una temperatura estable medida; su Max-Age de 10 s indica cuándo volver a intentar, no que el valor antiguo siga siendo válido. [Guía de Lab 4](labs/lab4.md).
 2. **¿Cómo distingue C un sensor muerto de un nodo inalcanzable?** Si falla el DHT11 pero S sigue en Thread, el nodo responde al GET: después de 60 s sin lectura válida devuelve **5.03** y el texto `no fresh reading`; S también termina Observe. Si S deja la red, no puede emitir esa respuesta. En la prueba con `ot thread stop`, un GET CON de C terminó en `ResponseTimeout` tras **90 s**, sin respuesta del nodo ni nuevas notificaciones Observe. Por tanto, **5.03 requiere una respuesta recibida de S** y apunta a falta de dato fresco; el silencio o un timeout indica que C no consiguió respuesta, pero por sí solo no identifica la causa física ni prueba que el sensor haya fallado.
-3. **¿Por qué la plausibilidad no detecta una lectura incorrecta pero creíble?** El control local solo conoce límites y cambios respecto de la última lectura: rechazó **90,00 °C** por rango y **31,50 °C** por un salto de **+8,5 °C**, pero aceptó la inyección deliberada de **25,50 °C** desde una lectura cercana a 23 °C y hasta la notificó a C. Una segunda medición independiente junto al sensor o una lectura vecina contextualizada permitiría detectar discrepancias, aunque tampoco demostraría por sí sola cuál instrumento es correcto. Una firma o autenticación, prevista para Lab 6, podría verificar quién envió el dato; **no convierte en correcta una medición errónea del sensor**. La comparación posterior con un termómetro junto al DHT11 dio 23,0 frente a 24,1 °C (offset −1,1 °C), pero fue otra medición puntual y no valida la inyección anterior.
+3. **¿Por qué la plausibilidad no detecta una lectura incorrecta pero creíble?** El control local solo conoce límites y cambios respecto de la última lectura: rechazó **90,00 °C** por rango y **31,50 °C** por un salto de **+8,5 °C**, pero aceptó la inyección deliberada de **25,50 °C** desde una lectura cercana a 23 °C y hasta la notificó a C. Una segunda medición independiente junto al sensor o una lectura vecina contextualizada permitiría detectar discrepancias, aunque tampoco demostraría por sí sola cuál instrumento es correcto. Una firma o autenticación, prevista para Lab 6, podría verificar quién envió el dato; **no convierte en correcta una medición errónea del sensor**. La comparación posterior con un termómetro junto al DHT11 dio 23,0 frente a 24,1 °C (offset −1,1 °C), pero fue otra medición puntual y no valida la inyección anterior. La humedad llegó a 95 %RH en la prueba de aliento: si un valor queda pegado al extremo superior del rango, puede indicar saturación o condensación y debe revisarse físicamente; esa hipótesis no se comprobó con un segundo instrumento.
 4. **¿Por qué puede fallar una lectura cuando la radio está ocupada?** El DHT11 codifica bits en la duración de pulsos y su controlador mide esos tiempos con la CPU; una interrupción de radio/OpenThread durante la lectura de aproximadamente **22 ms** puede alterar la medida o la comprobación y producir un fallo. En nuestra serie sin pings falló **1/69 (1,4 %)** y en la serie con pings **12/86 (14,0 %)**; C informó **3,5 %** de pérdida de ping en la segunda serie. La asociación es compatible con interferencia temporal entre lectura y actividad de radio, pero los contadores de S cubrieron **172 s**, más que los 120 s nominales de pings, y no se instrumentó cada interrupción: no se demostró la causa de cada fallo. Un sensor en un bus gestionado por hardware, como el BMP280 por I²C, no exige que la CPU mida cada pulso del dato; por eso es menos sensible a esta forma concreta de interrupción. **No se midió un BMP280 en esta pareja**, así que esa última comparación es de mecanismo, no una tasa experimental. [SOP-04](labs/sops/sop04_sensors.md).
+
+### Lab 5: preguntas de primeros principios
+
+1. **¿Por qué un anuncio de prefijo más SLAAC permite alcanzar S desde fuera?** El border router anunció a la malla el prefijo OMR `fdb8:76b7:2f59:1::/64`; S formó por SLAAC su propia dirección `fdb8:76b7:2f59:1:3654:3e83:5e42:fdf5`. En Wi-Fi, el portátil instaló automáticamente una ruta `proto ra` hacia ese `/64` vía `fe80::226e:f1ff:fe98:5e10`, la dirección link-local del S3. Así, un paquete dirigido a S tiene una dirección de destino y una ruta hacia el S3, que lo reenvía a Thread. La ruta y el prefijo, observados en ambos lados, explican la conectividad; el portátil obtuvo 9/10 respuestas ICMPv6 y 10/10 GET CoAP. No se añadió una ruta manual.
+2. **¿Por qué se necesita NAT64 si Thread es IPv6?** S solo usó IPv6, mientras `8.8.8.8` es una dirección IPv4. NAT64 publicó `fdb8:76b7:2f59:2::/96`; `ot ping 8.8.8.8` sintetizó `fdb8:76b7:2f59:2:0:0:808:808`, y el S3 tradujo el tráfico hacia IPv4 por su conexión Wi-Fi. Se recibieron 10/10 respuestas con RTT promedio de 167,500 ms. Esto prueba conectividad a ese destino en esta sesión, no disponibilidad permanente de Internet.
+3. **¿Por qué el payload de `/env/temp` conserva sus bytes al cruzar el OTBR?** El S3 enruta paquetes IP y adapta el enlace entre Thread y Wi-Fi; no actúa como servidor CoAP de `/env/temp` ni recodifica el CBOR. La respuesta sigue el contrato `{"t": float16}`: el cliente del portátil decodificó `a16174f94e40` como 25,0 °C. Los encabezados y tramas de cada enlace sí cambian. No se hizo una captura simultánea a ambos lados para verificar igualdad byte por byte de un mismo mensaje; la conservación del payload es una conclusión del diseño y de la ruta observada.
+4. **¿Por qué desactivar el ahorro Wi-Fi en un gateway alimentado de forma continua?** El S3 debe responder a tráfico externo sin esperar la siguiente ventana de ahorro: en las series de 10 pings al S3, el promedio bajó de 198,866 ms con el ahorro como estaba a 85,327 ms tras `wifi ps off`, ambos con 10/10 respuestas. Los máximos de 451,513 y 343,074 ms muestran que la variación siguió siendo alta; la diferencia de promedios no aísla por sí sola todas sus causas. Una válvula a batería, en cambio, reduce recepción y sondea periódicamente para ahorrar energía, aceptando la latencia medida en Lab 3. No se midió corriente del S3 ni de la válvula en Lab 5.
 
 ---
 
@@ -237,13 +300,44 @@ La pregunta 4 de la guía (cambio de RLOC tras volver a asociar C) es opcional y
 
 | Metric | Target | Measured | Status |
 |--------|--------|----------|--------|
-| Lab 1: Max Range | > 20 m | No consta una distancia máxima medida | [ ] Sin verificar |
+| Lab 1: Max Range | > 20 m con PER < 1 % | A 40 m una captura muestra 100/100 pings; a 23 m otra muestra 99/100. Sentido, RSSI y serie inversa no documentados | [ ] Alcance confiable bidireccional sin verificar |
 | Lab 2: Healing Time | < 120s | ≈ 8, 10 y 9 s; promedio ≈ 9 s | [x] Pass |
-| Lab 3: CoAP Latency | < 200ms | 52,9 ms, GET C → S en un salto (una muestra, tiempo observado desde el PC) | [x] Pass en esta muestra |
+| Lab 3: CoAP Latency | < 200ms | 52,9 ms, GET C → S en un salto (una muestra, tiempo observado desde el PC) | [x] Cumple esa muestra; faltan las series de 10 GET y 10 ping |
 | Lab 3: Poll Latency (5 s period) | < 5s | 4,191 s máximo (10/10 pings; una serie) | [x] Pass en esta serie |
 | Lab 4: Time to see a lost sensor | ≤ 60s | 51 s desde retirar DATA hasta que C mostró `no fresh reading`, según el cronómetro del equipo; S registró el paso a 5.03 al agotarse la frescura de 60 s desde la última lectura válida. | [x] Pass en la prueba cronometrada |
 | Lab 4: Read failures, radio busy | < 5% | 12/86 lecturas fallidas (14,0 %) en la repetición con pings; contador de S: 172 s | [ ] No cumple |
+| Lab 5: OTBR added latency | < 100 ms | 69,870 − 85,327 = **−15,457 ms**, diferencia de promedios de dos series de 10 pings, con 9/10 respuestas hacia S y 10/10 hacia el S3 | [ ] No concluyente: la diferencia negativa y la variación no estiman un costo propio del OTBR |
+| Lab 5: NAT64 RTT | < 200 ms | **167,500 ms** de promedio en 10 pings S → 8.8.8.8; 10/10 respuestas, mínimo 72 y máximo 289 ms | [x] Pass en esta serie |
 | Lab 6: DTLS Time | < 3 s | Pendiente de Lab 6 | [ ] Sin verificar |
+
+### Lab 1: escaneo y alcance radio
+
+**Tarea B — escaneo de energía.** `ot scan energy 500` exploró 16 canales durante 500 ms por canal. Este RSSI mide energía detectada en el escaneo, no el RSSI de un vecino.
+
+| Canal | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Lab 1 (dBm) | −102 | −102 | −102 | −101 | −103 | −100 | −103 | −95 | **−93** | −103 | −103 | −103 | −103 | **−104** | **−104** | −96 |
+| Repetición al iniciar Lab 2 (dBm) | −78 | −78 | −82 | −102 | −103 | **−73** | −104 | −86 | −103 | −101 | −103 | −103 | −104 | −104 | −104 | −95 |
+
+En Lab 1 el canal más ruidoso fue 19 (−93 dBm) y los más silenciosos 24 y 25 (−104 dBm). En la repetición, 16 fue el más ruidoso (−73 dBm), mientras 17, 23, 24 y 25 empataron en −104 dBm. Se mantuvo el 25. Según la guía, 24 se solapa con Wi-Fi 11 y 25 queda en un espacio entre canales Wi-Fi; no se conservó un escaneo de AP del teléfono para relacionar el canal 19 con una red concreta.
+
+**Tareas A y C — identificación y enlace.** Se flashearon dos C6, A formó la red y B se unió; se comunicaron A como `leader`, B como `router` y un ping A→B exitoso. En las tablas de vecinos compartidas, la MAC extendida `9246a9aad28ba946` aparece con RLOC16 `0x6400` (A) y `d6fb27c4755d37c9` con `0x9c00` (B). La asignación concuerda con las direcciones link-local `fe80::9046:a9aa:d28b:a946` y `fe80::d4fb:27c4:755d:37c9`, respectivamente: su primer byte difiere de la MAC extendida en el bit `0x02`. Son identificaciones de esa sesión, no capturas directas de `ot extaddr`. No se conservó una pareja final de salidas `ot state` y `ot neighbor table` de ambas placas.
+
+**Tarea D — RSSI y pérdida contra distancia.** La guía pide 100 pings de 64 B **en cada dirección** a 1, 5, 10, 20, 30 m y más allá, manteniendo la potencia, y el RSSI leído por cada receptor. El equipo confirmó que el número de cada archivo indica su distancia en metros. Las capturas prueban los resúmenes siguientes, pero no muestran desde cuál placa se lanzó cada serie ni la lectura RSSI. Las cinco capturas con destino `…:9c00` y la captura de 23 m con destino `…:7400` usan RLOC distintos; no se atribuye por ello una dirección A→B/B→A a toda la serie.
+
+| Distancia | Captura | Pings recibidos | PER observado en esa serie | RTT mín./prom./máx. (ms) | RSSI y sentido |
+|---:|---|---:|---:|---|---|
+| 1 m | [captura](docs/img/lab1_01m.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
+| 5 m | [captura](docs/img/lab1_05m.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
+| 10 m | [captura](docs/img/lab1_10m.png) | 100/100 | 0 % | 13/14,000/15 | No constan |
+| 20 m | [captura](docs/img/lab1_20m.png) | 100/100 | 0 % | 13/16,430/102 | No constan |
+| 23 m | [captura](docs/img/lab1_23m.png) | 99/100 | 1 % | 13/15,616/140 | No constan |
+| 30 m | Sin captura | — | — | — | Prueba pedida por la guía, sin registro |
+| 40 m | [captura](docs/img/lab1_40m.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
+
+Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida** y potencia indicada de **20 dBm**; no sustituye la captura `5.png`, que muestra 0 %, ni confirma la potencia de ambas placas en todas las distancias. El 1 % de 23 m **no supera** el 1 % y tampoco satisface el criterio estricto **PER < 1 %**. La serie de 40 m demuestra 100/100 solo para la dirección y las condiciones no documentadas de esa captura; no demuestra un alcance máximo confiable. La aparente mejora de 23 a 40 m requiere repetir las pruebas en ambos sentidos y registrar RSSI, potencia, lugar y orientación. Sin pares distancia–RSSI no procede dibujar una gráfica experimental ni fijar el RSSI umbral o el espaciamiento con margen por vegetación.
+
+No constan predicciones fechadas antes de Lab 1 ni las tareas opcionales de reintentos MAC, colisiones simultáneas y captura de trama. La comparación del escaneo con redes Wi-Fi visibles en el teléfono, la confirmación de `ot txpower` en ambas placas y la verificación de radios apagadas al final también carecen de registro.
 
 ### Lab 2: rendimiento y recuperación de la malla
 
@@ -286,6 +380,8 @@ Los tres ensayos quedaron por debajo del objetivo de 120 s de la guía. Estos ti
 
 **Límites del registro:** No quedaron anotadas lecturas de `ot txpower` de B y C tras cada reconexión, ni una salida explícita de `ot state` de A antes del tercer ensayo. Sí se registró que B y C estaban como routers y que la tabla de A enviaba a C por B antes de ese ensayo. Estas verificaciones faltantes impiden afirmar que las tres pruebas mantuvieron condiciones idénticas de potencia y liderazgo.
 
+La **Tarea F opcional** de Lab 2 (límite de tamaño sin fragmentación, caída del leader y elección de una nueva partición) no se realizó; no hay tabla de tamaños ni línea de tiempo de esa prueba. Los RTT y la recuperación anteriores corresponden a la caída de **B como router**, no a la del leader A.
+
 ### Lab 3: tiempos de respuesta, sondeo y presupuesto de bytes
 
 #### Tiempos de respuesta CoAP
@@ -295,6 +391,8 @@ Los tres ensayos quedaron por debajo del objetivo de 120 s de la guía. Estos ti
 | GET `/env/temp`, ida y vuelta en un salto | **52,9 ms** | En C se envió el GET por el puerto serie y se cronometró hasta recibir `coap response ... a16174f94def`. C era leader y S router; la tabla de vecinos de C mostraba a S (`eab595fbb2640be7`, RLOC16 `0x3000`) como vecino directo. Es una sola muestra de tiempo observado desde el PC, que incluye puerto serie y CLI; no mide exclusivamente el tránsito de radio. |
 | PUT CON con S inalcanzable | **95 s** hasta `ResponseTimeout` (`error 28`) | Tiempo observado por C en la tarea 4.2; depende de los reintentos y la configuración de esta ejecución. |
 | PUT NON con S inalcanzable | Sin confirmación; C seguía sin respuesta a los 2 min | El silencio no permite afirmar entrega ni pérdida. Los PUT NON registrados después por S no demuestran recepción durante el corte. |
+
+**Tarea 3.1 — límite de la evidencia:** la guía solicita 10 GET y 10 pings comparables de C a S para aislar el costo del servidor CoAP. Solo quedó un GET cronometrado (52,9 ms) y no quedó la serie de 10 pings de esa misma configuración. Por tanto, el sobretiempo del servidor **no se puede calcular** con los resultados conservados; los 10 GET de Lab 5 recorrieron otra ruta (portátil → Wi-Fi → OTBR → S) y no sustituyen esta comparación. Se decodificó la carga CBOR de la respuesta y se registraron los tamaños de solicitud y respuesta en la Parte 6.
 
 **Predicción teórica del timeout CON (calculada con la guía después del ensayo):** sea `t` la primera espera aleatoria, entre 2 y 3 s. Cada espera siguiente se duplica y el cliente permite cuatro retransmisiones:
 
@@ -311,6 +409,8 @@ La [lectura del Lab 3](https://github.com/saacifuentesmu/4201327-iot_systems_des
 #### Tarea 3.2: Observe durante cinco minutos
 
 S registró **31** notificaciones por umbral y **0** heartbeats. Frente a los **300 GET** que enviaría el comparador de la guía a 1 Hz, `31/300 = 10,3 %` de esa cantidad de mensajes de actualización, además del intercambio inicial de registro Observe. Esta comparación no demuestra ahorro frente a un GET cada 60 s, que habría enviado aproximadamente 5 consultas.
+
+**Tareas 4 y 5.** Se registraron PUT OPEN/CLOSE, lectura GET de la válvula, una carga inválida con `4.00`, repetición del mismo estado con `OPEN, no change`, el timeout CON y silencio NON durante la caída. No quedó la serie de cinco PUT por cada período de sondeo ni una entrega duplicada comprobada en S: la tabla siguiente usa pings, que son la evidencia disponible de latencia de sondeo. No se documentó la Tarea F del panel de Lab 3 ni la Tarea G opcional; la captura de panel de §6 corresponde a Lab 5.
 
 #### Tarea 5.2: S como SED y estimación de energía
 
@@ -344,7 +444,11 @@ La guía compara tamaños de **mensajes CoAP**, antes de sumar UDP e IPv6. La co
 
 **Encaje en 802.15.4:** agregar 8 B de UDP a cada mensaje da, respectivamente, 23/25 B para GET, 27 B para Observe y 26/21 B para PUT, más IPv6 comprimido mediante 6LoWPAN. Incluso tomando como cota conservadora la cabecera IPv6 sin comprimir de 40 B, el mensaje mayor suma 19 + 8 + 40 = **67 B**, por debajo del presupuesto aproximado de 80–100 B para datos en una trama de 127 B descrito en la [lectura del Lab 2](https://github.com/saacifuentesmu/4201327-iot_systems_design/blob/397b4f3/en/labs/lectures/lab2_lecture.md). Por tamaño, estos mensajes caben en una trama; no se capturaron tramas de radio para medir su longitud efectiva ni confirmar directamente la ausencia de fragmentación.
 
+**Límite de la comparación:** 67 B incluye una cabecera IPv6 hipotética de 40 B, pero no añade la sobrecarga MAC, seguridad ni posibles encabezados 6LoWPAN. Por ello el presupuesto sugiere que el intercambio pequeño puede caber en una trama; sin una captura real no se debe declarar que cada paquete de esta ejecución viajó sin fragmentación.
+
 ### Lab 4: sensor real, disponibilidad y resiliencia
+
+En esta sección se separan lecturas observadas, cronometrajes comunicados por el equipo y la fila DHT22 simulada. No se conservaron predicciones fechadas antes del ensayo de Lab 4.
 
 #### Tarea 3.1: resolución y variación en reposo
 
@@ -373,6 +477,8 @@ A `00:55:40.802`, `soilsense inject 90` fue rechazado por estar fuera de −40..
 **Registro de S.** Se registraron lecturas fallidas a `01:00:41.616` y `01:00:43.616`, seguidas de `Sensor lost: 3 failed reads in a row` a `01:00:45.616`. S siguió respondiendo GET con el último valor bueno, 23,00 °C: a `01:00:55.449` tenía 15 s de edad y Max-Age 45; a `01:01:10.533`, 30 s y Max-Age 30; a `01:01:25.558`, 45 s y Max-Age 15. A `01:01:40.343`, S registró que ya no había lectura menor de 60 s, que GET pasaba a 5.03 y que terminaba una observación. Los GET de `01:01:40.725` y `01:01:55.687` quedaron registrados como 5.03 con reintento en 10 s. No se anotó la hora absoluta de la desconexión física ni se cronometró hasta la primera indicación en C.
 
 **Registro de C.** C recibió primero respuestas GET con CBOR `a16174f94dc0` (23,00 °C) y después respuestas con payload hexadecimal `6e6f2066726573682072656164696e67`, que decodifica a `no fresh reading`. El shell de C muestra el payload pero no el código; S registró que esos GET recibieron 5.03. Algunas líneas de C quedaron intercaladas con el prompt y los comandos, por lo que no se atribuye con certeza una línea truncada a una respuesta específica de GET o Observe. El fin de una observación consta en S. Los **1 min 15 s** comunicados por el equipo fueron la duración durante la que enviaron GET desde C a S, no el tiempo desde desconectar DATA hasta el primer `no fresh reading`. Ese último intervalo no se cronometró en esta primera serie; en la repetición de la tarea 5.2 el equipo reportó 51 s hasta `no fresh reading`, resultado consignado en la tabla de §6.
+
+**Vista del panel solicitada por la guía:** no se conservó una captura ni un tiempo de reacción del dashboard durante la desconexión de DATA en Lab 4. Los mensajes 5.03 y el fin de Observe permiten explicar qué debería recibir un cliente, pero no demuestran qué mostró Daniela en pantalla ni cuándo. La captura de Lab 5 documenta la operación normal del panel, no este fallo.
 
 #### Tarea 4.2: reconexión del sensor y pérdida del nodo
 
@@ -405,15 +511,32 @@ Antes del reinicio, C tenía un Observe activo sobre S y recibió `OBS=2` con CB
 
 La fila del DHT11 contiene las mediciones de nuestra pareja. **Todos los números de la fila DHT22 son datos simulados** para ilustrar cómo se compararía otro sensor; no proceden de una placa ni de otra pareja. En esta tabla ilustrativa, la fila simulada tendría menor variación y menos fallos bajo carga que el DHT11 medido, pero esa diferencia no es un resultado experimental. **Esta tabla local es la versión final de la Parte 6 para el equipo con los datos disponibles**, según lo acordado; la guía menciona una tabla compartida de la clase, cuya ubicación y demás filas no se facilitaron. El DDR cita la tabla local completa en esta sección sin atribuir la simulación a otros estudiantes.
 
+### Lab 5: predicciones antes de la implementación
+
+La columna de predicción se registró **antes** de construir el Border Router; la columna medida se añadió después. La estimación de 20 ms para C → S tomó como referencia el RTT de 16,3 ms medido en un enlace directo de Lab 2; las demás cifras fueron hipótesis para contrastar en Lab 5. La latencia añadida prevista usó el Wi-Fi con ahorro desactivado: 45 − 10 = 35 ms. Se usaron promedios de 10 pings y la mediana de 10 GET CoAP, como pide la guía.
+
+| Magnitud | Predicción | Valor medido | Meta de Lab 5 |
+|---|---:|---:|---|
+| RTT en la malla, C → S (`ot ping`) | 20 ms | **17,600 ms**, 10/10; mínimo 15, máximo 33 ms | Comparar con Lab 3 |
+| Salto Wi-Fi, laptop → OTBR, ahorro como estaba | 150 ms | **198,866 ms**, 10/10; mínimo 36,639, máximo 451,513 ms | — |
+| Salto Wi-Fi, laptop → OTBR, tras `wifi ps off` | 10 ms | **85,327 ms**, 10/10; mínimo 4,938, máximo 343,074 ms | — |
+| Laptop → S (`ping`) | 45 ms | **69,870 ms**, 9/10; mínimo 33,095, máximo 147,933 ms | — |
+| Laptop → S, GET CoAP `/env/temp` | 85 ms | **34 ms de mediana**, 10/10; mínimo 30, máximo 81 ms | < 200 ms |
+| Latencia añadida: laptop → S menos laptop → OTBR | 35 ms | **−15,457 ms** (69,870 − 85,327); no concluyente como costo del OTBR | < 100 ms |
+| NAT64, S → 8.8.8.8 | 120 ms | **167,500 ms**, 10/10; mínimo 72, máximo 289 ms | < 200 ms |
+| OTBR apagado, PUT C → S | Funciona | **Funcionó:** S respondió `2.04`, C recibió `a1617601`; GET del portátil: `NetworkError` en 11,736 s | Funciona |
+
+**Alcance de las mediciones:** el CoAP GET del portátil devolvió `{'t': 25.0}` con CBOR `a16174f94e40`; el panel, accesible desde el teléfono, mostró Observe y permitió PUT OPEN/CLOSE. Se adjuntó como evidencia de la Tarea D la [captura de pantalla del teléfono](docs/img/lab5_dashboard_phone.jpeg), que muestra 8 notificaciones Observe, payload CBOR de 6 B y la válvula `closed`. No se midió RTT de la acción desde el teléfono. La diferencia aritmética negativa de los pings no significa que el S3 acelere el tráfico: las dos rutas se midieron en series separadas, la serie hacia S perdió una respuesta y ambas variaron mucho. Con el S3 apagado, la red interna conservó el PUT C → S; el GET externo falló. Al volver a encenderlo, el S3 reingresó como **router** y `ot br state` regresó a `running`, sin recuperar el rol de leader en esta observación.
+
 ---
 
 ## 7. Ethics & Sustainability Checklist
 
-*   [ ] **Lab 1:** No se verificó que la interferencia no afectara a redes vecinas.
+*   [ ] **Lab 1:** El escaneo de energía fue de escucha pasiva; no se documentó una prueba del efecto sobre redes vecinas ni la desactivación final de ambas radios. No se realizaron las tareas opcionales de colisión provocada.
 *   [x] **Lab 2:** Se creó un dataset aleatorio propio y se ejecutó `ot thread stop` en las tres placas al terminar.
 *   [x] **Lab 4:** Se definió un valor por defecto seguro para dato ausente en el diseño siguiente; todavía no se implementó ni se ensayó el cierre automático de la válvula.
 *   [ ] **Lab 4:** No se documentó minimización de datos recolectados (privacidad).
-*   [ ] **Lab 5:** Pendiente comprobar funcionamiento local sin nube (sostenibilidad).
+*   [x] **Lab 5:** Con el S3 apagado, C recibió respuesta al PUT de S dentro de Thread sin nube ni Wi-Fi; el acceso externo desde el portátil sí falló.
 *   [ ] **Lab 6:** Pendiente comprobar cifrado (privacidad).
 *   [ ] **Lab 8:** Pendiente documentar el plan de fin de vida.
 
@@ -429,6 +552,14 @@ La fila del DHT11 contiene las mediciones de nuestra pareja. **Todos los número
 
 **Límite físico:** si S es inalcanzable, un PUT CLOSE desde C no garantiza cerrar una válvula que ya está abierta. Para que la decisión sea segura en campo, S necesita ejecutar localmente el cierre cuando pierda datos frescos y un límite independiente de duración del riego. El cierre local a los **30 s desde `detached`** descrito para Lab 3 sigue siendo solo una propuesta y no cubre el caso en que S forma otra partición como leader. Faltan caudal y volumen máximo para fijar un tiempo máximo de riego por ciclo. **El firmware de Lab 4 no implementa ni valida este comportamiento de cierre**; se consigna como diseño y brecha de seguridad, no como resultado experimental.
 
+### Lab 5 — sostenibilidad, seguridad y privacidad del gateway
+
+**Sostenibilidad:** al desconectar el S3, C recibió de S `a1617601` tras un PUT CON y S registró `OPEN, no change -> 2.04`. La función local de control siguió disponible sin el gateway y sin un servicio cloud. En cambio, el GET del portátil terminó en `NetworkError` después de 11,736 s; la prueba no demuestra acceso externo resistente a la caída del único border router.
+
+**Seguridad física:** la consola serie del S3 permitió configurar Wi-Fi, el dataset y el border routing sin pedir autenticación. Quien tenga el cable USB y acceso a esa consola puede controlar el gateway; esta es una brecha de diseño identificada en [Lab 5](labs/lab5.md), no una prueba de intrusión ejecutada por el equipo.
+
+**Privacidad y control:** el portátil en el hotspot recibió por RA la ruta OMR y pudo leer la temperatura; el teléfono en ese hotspot abrió y cerró la válvula. En Lab 5 no se configuró autenticación de aplicación para GET/PUT, por lo que otro dispositivo con acceso a la misma red y ruta podría intentar las mismas operaciones. No se ensayó con un tercero; el control de acceso y el cifrado quedan para Lab 6.
+
 ---
 
 ## 8. Viewpoint Analysis
@@ -437,10 +568,17 @@ La fila del DHT11 contiene las mediciones de nuestra pareja. **Todos los número
 |-----------|----------------|-------------------------|
 | Foundational | Lab 1-2 | Placas ESP32-C6, radio 802.15.4 y red Thread de tres nodos |
 | Business | Pendiente | No documentado todavía en este DDR |
-| Usage | Lab 3-4 | C consulta y observa la temperatura de S; Edwin distingue falta de dato fresco (`5.03`) de falta de respuesta (`ResponseTimeout`). Véase §2. |
-| Functional | Lab 1-4 | PED: propagación e interferencia y temperatura del aire; SCD: placas, routers, DHT11 y controles de plausibilidad; ASD: servicios CoAP y contratos de §4. |
-| Trustworthiness | Lab 4 | Integridad: offset −1,1 °C y filtros de plausibilidad con un valor falso aceptado; disponibilidad: 5.03 frente a timeout; fiabilidad: 1,4 % de fallos sin pings frente a 14,0 % en la serie con pings; resiliencia: sensor recuperado en ≈2 s y servicio listo 516 ms después, con Thread y Observe restaurados manualmente tras RESET. Véanse §5–§7 y la tabla completa de la Parte 6 en §6. |
+| Usage | Lab 3-5 | C consulta y observa la temperatura de S; Edwin distingue falta de dato fresco (`5.03`) de falta de respuesta (`ResponseTimeout`). En Lab 5 Daniela abrió y cerró la válvula desde el panel del teléfono. Véase §2. |
+| Functional | Lab 1-5 | PED: propagación e interferencia y temperatura del aire; SCD: placas, routers, DHT11, controles de plausibilidad y gateway S3 + C6 RCP; ASD: servicios CoAP, contratos de §4 y panel del portátil. |
+| Trustworthiness | Lab 4-5 | En Lab 4 se comprobaron disponibilidad, integridad y recuperación del sensor con las limitaciones de §5–§7. En Lab 5, C → S siguió funcionando sin el OTBR, pero el GET externo falló en 11,736 s; el acceso de aplicación quedó sin autenticación. Véase §9. |
 | Construction | Pendiente de Lab 8 | El patrón de construcción de §10 aún no se ha documentado |
+
+### Lab 5: patrones empresariales de ISO/IEC 30141
+
+| Patrón de la guía | Preocupación documentada | Evidencia en este DDR |
+|---|---|---|
+| Sistema empresarial, tabla A.3 y figura A.5 | El gateway IoT une el SCD con otros dominios y está alojado en SCD; no se atribuyó una función RAID no implementada | Scorecard de seis funciones en §4; S3 + C6 RCP, ruta OMR, NAT64 y límites de procesamiento, certificación y gestión |
+| Redes empresariales, tabla A.4 y figura A.6 | Distinguir redes de proximidad, acceso, servicios y usuario y las direcciones que atraviesan | Tabla de cuatro redes en §4 con ML-EID/OMR de S, IPv4 y link-local del S3, panel del portátil y teléfono |
 
 ---
 
@@ -448,13 +586,13 @@ La fila del DHT11 contiene las mediciones de nuestra pareja. **Todos los número
 
 | Characteristic | Addressed? | How | Gaps |
 |----------------|------------|-----|------|
-| Availability | Parcial | Con DATA desconectado, S redujo Max-Age 45 → 30 → 15 s y pasó a 5.03 al agotar 60 s desde la última lectura válida; C recibió `no fresh reading` 51 s después de retirar DATA, según el cronómetro del equipo. Con S fuera de Thread, C obtuvo `ResponseTimeout` tras 90 s. | La medición de 51 s no tiene marca horaria de C conservada; Observe terminó y requirió un nuevo registro tras recuperar el sensor. |
-| Confidentiality | → Lab 6 | Lab 4 no ensayó protección de confidencialidad. | Cifrado y ataques quedan para Lab 6. |
+| Availability | Parcial | En Lab 4, con DATA desconectado, S redujo Max-Age 45 → 30 → 15 s y pasó a 5.03; C recibió `no fresh reading` 51 s después de retirar DATA. Con S fuera de Thread, C obtuvo `ResponseTimeout` tras 90 s. En Lab 5, con el S3 apagado, C mantuvo el PUT a S, pero el GET del portátil falló en 11,736 s. | La medición de 51 s no tiene marca horaria de C conservada; Observe terminó y requirió un nuevo registro. Un solo OTBR es punto único de fallo del acceso externo. |
+| Confidentiality | → Lab 6 | En Lab 5, el portátil y el teléfono en el hotspot accedieron al servicio CoAP sin autenticación de aplicación. | No se ensayó un tercero ni se configuró control de acceso de aplicación; cifrado y ataques quedan para Lab 6. |
 | Integrity | Parcial | DHT11 23,0 °C frente a referencia colocada al lado de 24,1 °C; se rechazaron 90 °C y un salto de +8,5 °C, pero pasó una inyección falsa de 25,5 °C. | Una comparación puntual no valida todo el rango; faltan referencia continua y protección frente a alteración maliciosa → Lab 6. |
 | Reliability | Parcial; objetivo incumplido | 1/69 lecturas fallidas (1,4 %) sin pings frente a 12/86 (14,0 %) en la serie con pings; el objetivo de radio ocupada era <5 %. | El contador ocupado abarcó 172 s; no se aisló causalmente cada fallo ni se comparó con otro sensor medido. La fila DHT22 de la tabla §6 es simulada. |
-| Resilience | Parcial | Al reconectar DATA, `Sensor back` apareció en ≈2 s y S declaró 2.05 otros 516 ms después. Tras RESET volvió a leer, pero Thread arrancó `disabled`; C tuvo que registrar Observe de nuevo. | Inicio de Thread y restauración de Observe requirieron acciones manuales; no se probó recuperación autónoma de extremo a extremo. |
+| Resilience | Parcial | Al reconectar DATA en Lab 4, `Sensor back` apareció en ≈2 s y S declaró 2.05 otros 516 ms después. En Lab 5, la malla C → S continuó sin el S3; tras restaurarlo manualmente, el S3 reingresó como router y `ot br state` volvió a `running`. | Inicio de Thread, Wi-Fi y restauración de Observe/dataset requirieron acciones manuales; no se probó recuperación autónoma de extremo a extremo. |
 | Safety | Diseño, sin prueba | Valor por defecto de §7: no iniciar riego sin temperatura fresca; ante 5.03 cerrar de inmediato, y ante silencio invalidar el dato al vencer Max-Age. | La orden CLOSE puede no llegar si S está fuera de la red; cierre local y límite de duración de riego aún no implementados. |
-| Compliance | Pendiente | No se evaluó cumplimiento normativo en Lab 4. | Requiere requisitos y evidencias de cumplimiento específicos. |
+| Compliance | Pendiente | No se evaluó cumplimiento normativo en Labs 4–5. | Requiere requisitos y evidencias de cumplimiento específicos. |
 
 ---
 
