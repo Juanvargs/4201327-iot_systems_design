@@ -324,28 +324,29 @@ En Lab 1 el canal más ruidoso fue 19 (−93 dBm) y los más silenciosos 24 y 25
 
 **Tareas A y C — identificación y enlace.** Se flashearon dos C6, A formó la red y B se unió; se comunicaron A como `leader`, B como `router` y un ping A→B exitoso. En las tablas de vecinos compartidas, la MAC extendida `9246a9aad28ba946` aparece con RLOC16 `0x6400` (A) y `d6fb27c4755d37c9` con `0x9c00` (B). La asignación concuerda con las direcciones link-local `fe80::9046:a9aa:d28b:a946` y `fe80::d4fb:27c4:755d:37c9`, respectivamente: su primer byte difiere de la MAC extendida en el bit `0x02`. Son identificaciones de esa sesión, no capturas directas de `ot extaddr`. No se conservó una pareja final de salidas `ot state` y `ot neighbor table` de ambas placas.
 
-**Tarea D — RSSI y pérdida contra distancia.** La guía pide 100 pings de 64 B **en cada dirección** a 1, 5, 10, 20, 30 m y más allá, manteniendo la potencia, y el RSSI leído por cada receptor. Los nombres de los archivos `1.png`, `5.png`, `10.png`, `20.png` y `23.png` indican metros; el equipo aclaró que **`40.png` indica 40 cm (0,4 m)**. Las capturas prueban los resúmenes siguientes, pero no muestran desde cuál placa se lanzó cada serie ni la lectura RSSI. Las cinco capturas con destino `…:9c00` y la captura de 23 m con destino `…:7400` usan RLOC distintos; no se atribuye por ello una dirección A→B/B→A a toda la serie.
+**Tarea D — RSSI y pérdida contra distancia.** La guía pide 100 pings de 64 B **en cada dirección** a 1, 5, 10, 20, 30 m y más allá, manteniendo la potencia, y el RSSI leído por cada receptor. Los nombres de los archivos `1.png`, `5.png`, `10.png`, `20.png` y `23.png` indican metros; el equipo aclaró que **`40.png` indica 40 cm (0,4 m)**. Las capturas históricas prueban los resúmenes de sus propias filas, pero no muestran desde cuál placa se lanzó cada serie ni la lectura RSSI. Las cinco capturas con destino `…:9c00` y la captura de 23 m con destino `…:7400` usan RLOC distintos; no se atribuye por ello una dirección A→B/B→A a toda la serie histórica.
 
-| Distancia | Captura | Pings recibidos | PER observado en esa serie | RTT mín./prom./máx. (ms) | RSSI y sentido |
-|---:|---|---:|---:|---|---|
-| 0,4 m (40 cm) | [captura](docs/img/lab1_040cm.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
-| 1 m | [captura](docs/img/lab1_01m.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
-| 5 m | [captura](docs/img/lab1_05m.png) | 100/100 | 0 % | 13/13,990/15 | No constan |
-| 10 m | [captura](docs/img/lab1_10m.png) | 100/100 | 0 % | 13/14,000/15 | No constan |
-| 20 m | [captura](docs/img/lab1_20m.png) | 100/100 | 0 % | 13/16,430/102 | No constan |
-| 23 m | [captura](docs/img/lab1_23m.png) | 99/100 | 1 % | 13/15,616/140 | No constan |
-| 30 m | Sin captura | — | — | — | Prueba pedida por la guía, sin registro |
+**Repetición del 30 de octubre.** A: `ot extaddr 72a51abeec58d4fc`, `leader`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:0`. B: `ot extaddr 1aa097bddbe796fe` después de `ot factoryreset`, `router`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:2c00`. Se eligió el canal 25 y `ot txpower` mostró 20 dBm en ambas. Los pings fueron de 64 B, 100 por sentido y separados 0,2 s; `Avg RSSI` se leyó en la tabla del **receptor** al terminar ambas series en cada distancia. Las filas «captura histórica» y «repetición» pertenecen a sesiones distintas; no se combinan sus resultados para calcular PER.
 
-Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida** y potencia indicada de **20 dBm**; no sustituye la captura `5.png`, que muestra 0 %, ni confirma la potencia de ambas placas en todas las distancias de la serie histórica. El 1 % de 23 m **no supera** el 1 % y tampoco satisface el criterio estricto **PER < 1 %**. Entre esas capturas, **20 m es la mayor distancia con PER < 1 % en la serie registrada**, mientras 23 m es la mayor distancia ensayada; esa serie, por sí sola, no demuestra un alcance confiable bidireccional ni que el enlace empiece a fallar justo después de 20 m. La repetición con RSSI y sentidos identificados se registra por separado a continuación.
+| Distancia | Sesión y evidencia | Sentido | Recibidos / PER | RTT mín./prom./máx. (ms) | Avg RSSI en receptor |
+|---:|---|---|---|---|---:|
+| 0,4 m (40 cm) | [Captura histórica](docs/img/lab1_040cm.png) | No documentado | 100/100 · 0 % | 13/13,990/15 | No registrado |
+| 1 m | [Captura histórica](docs/img/lab1_01m.png) | No documentado | 100/100 · 0 % | 13/13,990/15 | No registrado |
+| 1 m | Repetición, salida de A | A→B | 100/100 · 0 % | 13/14,020/16 | −81 dBm, tabla de B |
+| 1 m | Repetición, salida de B | B→A | 100/100 · 0 % | 13/14,460/35 | −80 dBm, tabla de A |
+| 5 m | [Captura histórica](docs/img/lab1_05m.png) | No documentado | 100/100 · 0 % | 13/13,990/15 | No registrado |
+| 5 m | Repetición, salida de A | A→B | 100/100 · 0 % | 13/14,310/25 | −77 dBm, tabla de B |
+| 5 m | Repetición, salida de B | B→A | 100/100 · 0 % | 13/14,200/19 | −78 dBm, tabla de A |
+| 10 m | [Captura histórica](docs/img/lab1_10m.png) | No documentado | 100/100 · 0 % | 13/14,000/15 | No registrado |
+| 10 m | Repetición, salida de A | A→B | 100/100 · 0 % | 14/14,650/42 | −86 dBm, tabla de B |
+| 10 m | Repetición, salida de B | B→A | 99/100 · 1 % | 13/14,111/24 | −87 dBm, tabla de A |
+| 20 m | [Captura histórica](docs/img/lab1_20m.png) | No documentado | 100/100 · 0 % | 13/16,430/102 | No registrado |
+| 20 m | Repetición, salida de A | A→B | 0/100 · 100 % | Sin respuestas | No medido |
+| 20 m | Repetición | B→A | No medido | No medido | No medido |
+| 23 m | [Captura histórica](docs/img/lab1_23m.png) | No documentado | 99/100 · 1 % | 13/15,616/140 | No registrado |
+| 30 m | Sin prueba | — | — | — | — |
 
-**Tarea D — repetición del 30 de octubre.** A: `ot extaddr 72a51abeec58d4fc`, `leader`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:0`. B: `ot extaddr 1aa097bddbe796fe` después de `ot factoryreset`, `router`, RLOC `fd91:409c:ae41:b5b:0:ff:fe00:2c00`. El escaneo llevó a elegir el canal 25; `ot txpower` mostró 20 dBm en ambas antes de los ensayos. Se enviaron 100 pings de 64 B cada 0,2 s por sentido, sin simultaneidad. `Avg RSSI` se tomó de la tabla de vecinos del **receptor** después de las dos series de cada distancia. Las cifras siguientes son de esta repetición y no sustituyen las capturas históricas anteriores.
-
-| Distancia | RSSI A→B (tabla B) | RSSI B→A (tabla A) | A→B recibidos / pérdida | B→A recibidos / pérdida | RTT promedio A→B / B→A |
-|---:|---:|---:|---|---|---|
-| 1 m | −81 dBm | −80 dBm | 100/100 · 0 % | 100/100 · 0 % | 14,020 / 14,460 ms |
-| 5 m | −77 dBm | −78 dBm | 100/100 · 0 % | 100/100 · 0 % | 14,310 / 14,200 ms |
-| 10 m | −86 dBm | −87 dBm | 100/100 · 0 % | 99/100 · 1 % | 14,650 / 14,111 ms |
-| 20 m | No medido | No medido | 0/100 · 100 % | No medido | No disponible |
+Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida** y potencia indicada de **20 dBm**; no sustituye la captura `5.png`, que muestra 0 %, ni confirma la potencia de ambas placas en todas las distancias de la serie histórica. El 1 % de 23 m **no supera** el 1 % y tampoco satisface el criterio estricto **PER < 1 %**. Entre las capturas históricas, **20 m es la mayor distancia con PER < 1 % en la serie registrada**, mientras 23 m es la mayor distancia ensayada; esa serie, por sí sola, no demuestra un alcance confiable bidireccional ni que el enlace empiece a fallar justo después de 20 m.
 
 La guía indica detener el recorrido cuando PER supera 10 %; por ello no se ejecutaron B→A a 20 m ni la prueba de 30 m en esta repetición. Tampoco se recibieron las salidas de `ot state` y `ot neighbor table` a 20 m, así que no consta si había un vecino visible a esa distancia. En esta serie, 5 m es la mayor distancia con PER < 1 % **medido en ambos sentidos**; a 10 m, el 1 % de B→A ya incumple ese criterio estricto. El RSSI de 5 m resultó más fuerte que el de 1 m, por lo que estas muestras no establecen una caída monótona ni un umbral de fiabilidad. Las lecturas de 1, 5 y 10 m permiten graficar esos puntos contra `log₁₀(distancia)`, pero no fijar un RSSI experimental para el fallo de 20 m ni un margen por vegetación.
 
