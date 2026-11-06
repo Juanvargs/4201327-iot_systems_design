@@ -350,11 +350,11 @@ Una prueba **distinta** a 5 m fue comunicada verbalmente con **1 % de pérdida**
 
 La guía indica detener el recorrido cuando PER supera 10 %; por ello no se ejecutaron B→A a 20 m ni la prueba de 30 m en esta repetición. Tampoco se recibieron las salidas de `ot state` y `ot neighbor table` a 20 m, así que no consta si había un vecino visible a esa distancia. En esta serie, 5 m es la mayor distancia con PER < 1 % **medido en ambos sentidos**; a 10 m, el 1 % de B→A ya incumple ese criterio estricto. El RSSI de 5 m resultó más fuerte que el de 1 m, por lo que estas muestras no establecen una caída monótona ni un umbral de fiabilidad. Las lecturas de 1, 5 y 10 m permiten graficar esos puntos contra `log₁₀(distancia)`, pero no fijar un RSSI experimental para el fallo de 20 m ni un margen por vegetación.
 
-| Proyección teórica a 20 m — **no es medición** | RSSI A→B | RSSI B→A | Cálculo |
-|---|---:|---:|---|
-| Caída ideal de 6 dB al duplicar 10 m → 20 m | −92 dBm | −93 dBm | −86 − 6; −87 − 6 |
+| Distancia | RSSI A→B proyectado | RSSI B→A proyectado | Pérdida A→B medida |
+|---:|---:|---:|---:|
+| 20 m | −92 dBm | −93 dBm | 100 % (0/100) |
 
-Esta proyección usa el supuesto de espacio libre de la guía; no procede de `ot neighbor table` y no explica por sí sola el 100 % de pérdida observado A→B a 20 m.
+Los RSSI proyectados se calculan restando 6 dB a las lecturas de 10 m: −86 − 6 = −92 dBm y −87 − 6 = −93 dBm. Esta proyección usa el supuesto de espacio libre de la guía; no procede de `ot neighbor table` y no explica por sí sola el 100 % de pérdida observado A→B a 20 m.
 
 No constan predicciones fechadas antes de Lab 1 ni las tareas opcionales de reintentos MAC, colisiones simultáneas y captura de trama. En la repetición sí se comparó el escaneo de 802.15.4 con redes Wi-Fi detectadas por el PC y se verificó `ot txpower` en ambas placas; no consta una verificación de radios apagadas al final.
 
